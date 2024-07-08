@@ -124,7 +124,7 @@ class BridgeServer():
         logging.info(f"[WS REQ] TRACING DONE / {sid}")
 
     async def websocket_connection(self, request, mode):
-        sid = request.rel_url.query.get('clientId', '')
+        sid = request.rel_url.query.get('clientId', None)
         if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
         logging.info(f"[WS RES] RECEIVED / {sid}")
 
@@ -214,7 +214,7 @@ class BridgeServer():
     
     async def generate_based_workflow(self, request):
         data = await request.json()
-        sid = request.rel_url.query.get('clientId', '')
+        sid = request.rel_url.query.get('clientId', None)
         if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
 
         workflow = data.pop("workflow", None)
@@ -241,7 +241,14 @@ class BridgeServer():
         self.state_obj.generation_count += 1
         await self.state_obj.update()
 
-        return web.Response(status=200)
+        queue_state = get_queue_state(self.socket_manager[sid].linked_server)
+        queue_length = sum([len(cur) for cur in queue_state.values()])
+        
+        return web.Response(
+            status=200,
+            body=json.dumps({"detail":f"queued / {queue_length}"}),
+            headers={"Content-Type": "application/json"}
+        )
     
     async def upload(self, request):
         reader= await request.multipart()
@@ -277,7 +284,7 @@ class BridgeServer():
         )
         
     async def get_history(self, request):
-        sid = request.rel_url.query.get('clientId', '')
+        sid = request.rel_url.query.get('clientId', None)
         if not isinstance(sid, str): raise TypeError(f"clientId is must be str, but got {type(sid).__str__()}")
         
         server_address = self.socket_manager[sid].linked_server
@@ -326,14 +333,19 @@ class BridgeServer():
             )
 
     async def free_memory(self, request):
-        sid = request.rel_url.query.get('clientId', '')
-        if not isinstance(sid, str): raise TypeError(f"clientId is required and must be str, but got {type(sid).__str__()}")
-
-        post_free_memory(self.socket_manager[sid].linked_server)
-        return web.Response(status=200, body=json.dumps({"detail":f"server memory free now / {sid}"}), content_type="application/json")
+        sid = request.rel_url.query.get('clientId', None)
+        if sid is not None:
+            post_free_memory(self.socket_manager[sid].linked_server)
+        else:
+            for address in self.server_address:
+                try:
+                    post_free_memory(address)
+                except Exception as e:
+                    continue
+        return web.Response(status=200, body=json.dumps({"detail":f"server memory free now / {sid if sid else "ALL"}"}), content_type="application/json")
     
     async def interrupt_generation(self, request):
-        sid = request.rel_url.query.get('clientId', '')
+        sid = request.rel_url.query.get('clientId', None)
         if not isinstance(sid, str): raise TypeError(f"clientId is required and must be str, but got {type(sid).__str__()}")
 
         await self.socket_manager.async_delete(sid)
@@ -344,7 +356,7 @@ class BridgeServer():
         return web.Response(status=200, body=json.dumps(generation_count), content_type="application/json")
     
     async def get_execution_info(self, request):
-        sid = request.rel_url.query.get('clientId', '')
+        sid = request.rel_url.query.get('clientId', None)
         if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
         execution_info = self.socket_manager[sid].execution_info
         return web.Response(status=200, body=json.dumps(execution_info), content_type="application/json")
