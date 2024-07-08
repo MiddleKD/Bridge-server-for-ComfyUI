@@ -88,22 +88,21 @@ async def upload_file(file_paths):
 
     if not isinstance(file_paths, list):
         file_paths = [file_paths]
+
     async with aiohttp.ClientSession() as session:
 
-        
-        writer = aiohttp.MultipartWriter("form-data")
-
+        data = aiohttp.FormData()
         for idx, file_path in enumerate(file_paths):
-            with open(file_path, 'rb') as file:
-                file_data = file.read()
-                headers = {"Content-Type":get_mime_type_from_binary(file_data), 
-                           'Content-Disposition': f'attachment; filename="{file_path.split("/")[-1]}"',
-                           "ori_file_id":file_path}
-                writer.append(file_data, headers=headers)
+            with open(file_path, 'rb') as file_data:
+                data.add_field(
+                    f'upload_{idx}',
+                    file_data,
+                    content_type=get_mime_type_from_binary(file_data),
+                    filename=os.path.basename(file_path),
+                )
+        headers = "Content-Type: multipart/form-data"
 
-        headers = {"Content-Type":writer.content_type}
-        
-        async with session.post(url, data=writer, headers=headers) as response:
+        async with session.post(url, data=data, headers=headers) as response:
             if response.status == 200:
                 response_data = await response.json()
                 return response_data
@@ -113,24 +112,20 @@ async def upload_file(file_paths):
 
 async def save_file_from_part(part, default_filename='downloaded_file'):
 
-    filename = part.headers.get('Content-Disposition', '').split('filename=')[1].strip('"') if 'filename=' in part.headers.get('Content-Disposition', '') else default_filename
+    filename = part.filename
     
-    if filename:
-        filename = filename.strip('"')
-    else:
+    if filename is None:
         filename = default_filename
 
-    directory = os.path.dirname(filename) or "."
     base_name, extension = os.path.splitext(filename)
     new_file_name = filename
 
-    # Check if the file exists and find a new name if it does
     counter = 1
-    while os.path.exists(os.path.join(directory, new_file_name)):
+    while os.path.exists(new_file_name):
         new_file_name = f"{base_name} ({counter}){extension}"
         counter += 1
     
-    save_path = os.path.join(directory, new_file_name)
+    save_path = new_file_name
 
     async with aiofiles.open(save_path, 'wb') as f:
         while True:

@@ -6,7 +6,7 @@ def setup_routes(app:web.Application, server):
         web.get("/ws", lambda request: server.websocket_connection(request, mode="PROXY")),
         web.get("/workflow-info", server.get_workflow_info),
         web.get("/history", server.get_history),
-        web.post("/upload", server.upload_image),
+        web.post("/upload", server.upload),
         web.post("/generate-based-workflow", server.generate_based_workflow),
         web.get("/workflow-list", server.get_workflow_list),
         web.get("/execution-info", server.get_execution_info),

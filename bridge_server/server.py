@@ -242,7 +242,7 @@ class BridgeServer():
 
         return web.Response(status=200)
     
-    async def upload_image(self, request):
+    async def upload(self, request):
         reader= await request.multipart()
 
         logging.info(f"[POST] '{request.path}'")
@@ -296,24 +296,23 @@ class BridgeServer():
             if isinstance(output, tuple):
                 output = (output)
             
-            writer = aiohttp.MultipartWriter("form-data")
-            
+            data = aiohttp.FormData()
             file_paths, mime_types, file_contents = parse_outputs(output[0], root_dir=self.comfyui_dir)
-            for file_path, mime_type, file_content in zip(file_paths, mime_types, file_contents):
-
-                headers = {'Content-Type': mime_type, 'Content-Disposition': f'attachment; filename="{file_path.split("/")[-1]}"'}
-                writer.append(file_content, headers)
-
-            headers = {
-                'Content-Type': writer.content_type,
-            }
+            for idx, (file_path, mime_type, file_content) in enumerate(zip(file_paths, mime_types, file_contents)):
+                data.add_field(
+                    f'result_{idx}',
+                    file_content,
+                    content_type=mime_type,
+                    filename=os.path.basename(file_path),
+                )
+            headers = "Content-Type: multipart/form-data"
             
             await self.socket_manager.async_delete(sid)
             logging.debug(f"[GET] '{request.path}' / DELETE HISTORY / {sid}")
 
             return web.Response(
                 status=200,
-                body=writer,
+                body=data,
                 headers=headers
             )
         else:

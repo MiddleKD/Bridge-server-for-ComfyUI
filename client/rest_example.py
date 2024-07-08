@@ -1,7 +1,8 @@
-import os, io
+import os
 import asyncio
+import aiofiles
 import requests
-from requests_toolbelt import MultipartEncoder, MultipartDecoder
+import aiohttp
 import magic
 
 server_address = "localhost:8000"
@@ -60,11 +61,11 @@ async def get_history(client_id, download=True):
         )
 
         if download and response.status_code == 200:
-            content_type = response.headers['Content-Type']
-            decoder = MultipartDecoder(response.content, content_type)
-            
-            for part in decoder.parts:
-                save_file_from_part(part)
+
+            reader = aiohttp.MultipartReader.from_response(response)
+            async for part in reader:
+                await save_file_from_part(part)
+            await reader.release()
         
         return response
 
@@ -73,70 +74,56 @@ async def get_history(client_id, download=True):
     finally:
         response.close()
 
-def upload_file(file_paths):
-    url = f"http://{server_address}/upload/image"
+async def upload_file(file_paths):
+    url = f"http://{server_address}/upload"
 
     if not isinstance(file_paths, list):
         file_paths = [file_paths]
 
-    fields = {}
-    for idx, file_path in enumerate(file_paths):
-        with open(file_path, 'rb') as file:
-            file_data = file.read()
-            file_name = os.path.basename(file_path)  # 파일 경로에서 파일 이름만 추출
-            mime_type = get_mime_type_from_binary(file_data)
-            
-            fields[f'file_{idx}'] = (
-                file_name,
-                file_data,
-                mime_type,
-                {
-                    'Content-Disposition': f'attachment; filename="{file_name}"',
-                    'ori_file_id': file_path
-                }
-            )
+    async with aiohttp.ClientSession() as session:
 
-    multipart_data = MultipartEncoder(fields=fields)
+        data = aiohttp.FormData()
+        for idx, file_path in enumerate(file_paths):
+            with open(file_path, 'rb') as file_data:
+                data.add_field(
+                    f'upload_{idx}',
+                    file_data,
+                    content_type=get_mime_type_from_binary(file_data),
+                    filename=os.path.basename(file_path),
+                )
+        headers = "Content-Type: multipart/form-data"
 
-    headers = {
-        "Content-Type": multipart_data.content_type
-    }
+        async with session.post(url, data=data, headers=headers) as response:
+            if response.status == 200:
+                response_data = await response.json()
+                return response_data
+            else:
+                print(f"Error uploading file: {response.status}")
+                return None
+
+async def save_file_from_part(part, default_filename='downloaded_file'):
+
+    filename = part.filename
     
-    response = requests.post(url, data=multipart_data, headers=headers)
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error uploading file: {response.status_code}")
-        return None
-
-def save_file_from_part(part, default_filename='downloaded_file'):
-    content_disposition = part.headers.get(b'Content-Disposition', b'').decode()
-    filename = content_disposition.split('filename=')[1].strip('"') if 'filename=' in content_disposition else default_filename
-    
-    if filename:
-        filename = filename.strip('"')
-    else:
+    if filename is None:
         filename = default_filename
 
-    directory = os.path.dirname(filename) or "."
     base_name, extension = os.path.splitext(filename)
     new_file_name = filename
 
     counter = 1
-    while os.path.exists(os.path.join(directory, new_file_name)):
+    while os.path.exists(new_file_name):
         new_file_name = f"{base_name} ({counter}){extension}"
         counter += 1
     
-    save_path = os.path.join(directory, new_file_name)
+    save_path = new_file_name
 
-    content_stream = io.BytesIO(part.content)
-    with open(save_path, 'wb') as f:
+    async with aiofiles.open(save_path, 'wb') as f:
         while True:
-            chunk = content_stream.read(8192)
+            chunk = await part.read_chunk()
             if not chunk:
                 break
-            f.write(chunk)
+            await f.write(chunk)
 
     return save_path
 
