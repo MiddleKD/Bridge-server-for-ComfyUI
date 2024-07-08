@@ -50,13 +50,10 @@ async def send_request(client_id, data):
         await session.close()
 
 async def get_workflow_info(workflow):
-    headers = {"Content-Type": "application/json"}
     try:
         async with aiohttp.ClientSession() as session:
-            response = await session.post(
-                url=f'http://{server_address}/workflow-info',
-                headers=headers,
-                json={"workflow":workflow})
+            response = await session.get(
+                url=f'http://{server_address}/history?workflow={workflow}')
             return await response.json()
     except aiohttp.ServerDisconnectedError as e:
         print(e)

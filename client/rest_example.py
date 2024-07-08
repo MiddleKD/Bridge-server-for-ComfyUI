@@ -21,11 +21,12 @@ def get_mime_type_from_binary(binary_data):
         mime_type = 'application/octet-stream'
     return mime_type
 
-def get_request(api, client_id=None):
+def get_request(api, query = {}):
     headers = {"Content-Type": "application/json"}
+    query_string = "&".join([f"{key}={value}" for key, value in query.items()])
     try:
         response = requests.get(
-            url=f'http://{server_address}/{api}?clientId={client_id}',
+            url=f'http://{server_address}/{api}?{query_string}',
             headers=headers,
         )
         if response.status_code == 200:
@@ -144,7 +145,7 @@ async def tracing(ci):
     ex_info_before = None
     while True:
         await asyncio.sleep(0.5)
-        ex_info = get_request("execution-info", ci)
+        ex_info = get_request("execution-info", query={"clientId", ci})
         print(ex_info)
 
         if ex_info_before == ex_info:
@@ -167,7 +168,7 @@ async def run_client(client_id, data):
 async def main(ci_list, wf_list, is_test=False):
     user_inputs = []
     for wf in wf_list:
-        wf_info = post_request("workflow-info", {"workflow":wf})
+        wf_info = get_request("workflow-info", query={"workflow":wf})
         
         user_input = {"workflow":wf}
 

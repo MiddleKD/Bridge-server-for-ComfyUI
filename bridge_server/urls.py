@@ -8,9 +8,9 @@ def setup_routes(app:web.Application, server):
         web.get("/workflow-list", server.get_workflow_list),
         web.get("/generation-count", server.get_generation_count),
         web.get("/execution-info", server.get_execution_info),
+        web.get("/workflow-info", server.get_workflow_info),
         web.post("/free", server.free_memory),
         web.post("/interrupt", server.interrupt_generation),
         web.post("/generate-based-workflow", server.generate_based_workflow),
         web.post("/upload/image", server.upload_image),
-        web.post("/workflow-info", server.workflow_info),
     ])

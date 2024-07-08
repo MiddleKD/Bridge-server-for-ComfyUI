@@ -321,23 +321,6 @@ class BridgeServer():
                 body=json.dumps({"detail":f"No contents with that client id / {sid}"}),
                 headers={"Content-Type": "application/json"}
             )
-    
-    async def workflow_info(self, request):
-        data = await request.json()
-        workflow = data.pop("workflow", None)
-        workflow = self.wf_alias_map[workflow]
-        node_info = get_parsed_input_nodes(os.path.join(self.wf_dir, workflow))
-        return web.Response(status=200, body=json.dumps(node_info), content_type="application/json")
-
-    async def get_generation_count(self, _):
-        generation_count = self.state_obj.generation_count
-        return web.Response(status=200, body=json.dumps(generation_count), content_type="application/json")
-    
-    async def get_execution_info(self, request):
-        sid = request.rel_url.query.get('clientId', '')
-        if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
-        execution_info = self.socket_manager[sid].execution_info
-        return web.Response(status=200, body=json.dumps(execution_info), content_type="application/json")
 
     async def free_memory(self, request):
         sid = request.rel_url.query.get('clientId', '')
@@ -353,9 +336,26 @@ class BridgeServer():
         await self.socket_manager.async_delete(sid)
         return web.Response(status=200, body=json.dumps({"detail":f"interrupted that clientId will be ignored. / {sid}"}), content_type="application/json")
 
+    async def get_generation_count(self, _):
+        generation_count = self.state_obj.generation_count
+        return web.Response(status=200, body=json.dumps(generation_count), content_type="application/json")
+    
+    async def get_execution_info(self, request):
+        sid = request.rel_url.query.get('clientId', '')
+        if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
+        execution_info = self.socket_manager[sid].execution_info
+        return web.Response(status=200, body=json.dumps(execution_info), content_type="application/json")
+
     async def get_workflow_list(self, _):
         wf_list = list(self.wf_alias_map.keys())
         return web.Response(status=200, body=json.dumps(wf_list), content_type="application/json")
+    
+    async def get_workflow_info(self, request):
+        workflow = request.rel_url.query.get('workflow', '')
+        if not isinstance(workflow, str): raise TypeError(f"workflow is required and must be and str, but got {type(workflow).__str__()}")
+        workflow = self.wf_alias_map[workflow]
+        node_info = get_parsed_input_nodes(os.path.join(self.wf_dir, workflow))
+        return web.Response(status=200, body=json.dumps(node_info), content_type="application/json")
     
     async def main_page(self, _):
         return web.Response(text="Hello, this is ComfyUI Bridge Server! (made by middlek)")
