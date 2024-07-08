@@ -1,4 +1,4 @@
-I2I_basic.json
+image-to-image
 I2I_expand_api.json
 I2I_shift_api.json
 I2I_stylecomp.json

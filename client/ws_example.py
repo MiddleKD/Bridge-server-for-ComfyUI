@@ -60,7 +60,7 @@ async def get_workflow_info(workflow):
     finally:
         await session.close()
 
-async def get_hisotry(client_id, download=True):
+async def get_history(client_id, download=True):
     await asyncio.sleep(1)
     try:
         async with aiohttp.ClientSession() as session:
@@ -74,7 +74,6 @@ async def get_hisotry(client_id, download=True):
                     await save_file_from_part(part)
                 await reader.release()
             
-            response.release()
             return response
 
     except aiohttp.ServerDisconnectedError as e:
@@ -92,26 +91,30 @@ async def upload_file(file_paths):
     async with aiohttp.ClientSession() as session:
 
         data = aiohttp.FormData()
+        file_path_identifier_map = {}
         for idx, file_path in enumerate(file_paths):
-            with open(file_path, 'rb') as file_data:
+            with open(file_path, 'rb') as file:
+                file_data = file.read()
                 data.add_field(
                     f'upload_{idx}',
                     file_data,
                     content_type=get_mime_type_from_binary(file_data),
                     filename=os.path.basename(file_path),
                 )
-        headers = "Content-Type: multipart/form-data"
+                file_path_identifier_map[f'upload_{idx}'] = file_path
+        multipart = data()
+        headers = {"Content-Type": multipart.content_type}
 
-        async with session.post(url, data=data, headers=headers) as response:
+        async with session.post(url, data=multipart, headers=headers) as response:
             if response.status == 200:
                 response_data = await response.json()
-                return response_data
+                return {file_path_identifier_map[key]:value for key,value in response_data.items()}
             else:
                 print(f"Error uploading file: {response.status}")
                 return None
 
 async def save_file_from_part(part, default_filename='downloaded_file'):
-
+    
     filename = part.filename
     
     if filename is None:
@@ -143,14 +146,14 @@ async def run_client(client_id, data):
 
     await send_request(client_id, data)
     await trace_log
-    await get_hisotry(client_id)
+    await get_history(client_id)
 
 
 async def main(ci_list, wf_list, is_test=False):
     user_inputs = []
     for wf in wf_list:
         wf_info = await get_workflow_info(wf)
-        
+        print(wf)
         user_input = {"workflow":wf}
 
         if is_test == False:

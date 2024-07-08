@@ -56,23 +56,23 @@ def post_request(api, data, client_id=None):
 async def get_history(client_id, download=True):
     await asyncio.sleep(1)
     try:
-        response = requests.get(
-            url=f'http://{server_address}/history?clientId={client_id}',
-        )
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(
+                url=f'http://{server_address}/history?clientId={client_id}')
 
-        if download and response.status_code == 200:
+            if download == True and response.status == 200:
+                
+                reader = aiohttp.MultipartReader.from_response(response)
+                async for part in reader:
+                    await save_file_from_part(part)
+                await reader.release()
+            
+            return response
 
-            reader = aiohttp.MultipartReader.from_response(response)
-            async for part in reader:
-                await save_file_from_part(part)
-            await reader.release()
-        
-        return response
-
-    except requests.RequestException as e:
+    except aiohttp.ServerDisconnectedError as e:
         print(e)
     finally:
-        response.close()
+        await session.close()
 
 async def upload_file(file_paths):
     url = f"http://{server_address}/upload"
@@ -83,20 +83,24 @@ async def upload_file(file_paths):
     async with aiohttp.ClientSession() as session:
 
         data = aiohttp.FormData()
+        file_path_identifier_map = {}
         for idx, file_path in enumerate(file_paths):
-            with open(file_path, 'rb') as file_data:
+            with open(file_path, 'rb') as file:
+                file_data = file.read()
                 data.add_field(
                     f'upload_{idx}',
                     file_data,
                     content_type=get_mime_type_from_binary(file_data),
                     filename=os.path.basename(file_path),
                 )
-        headers = "Content-Type: multipart/form-data"
+                file_path_identifier_map[f'upload_{idx}'] = file_path
+        multipart = data()
+        headers = {"Content-Type": multipart.content_type}
 
-        async with session.post(url, data=data, headers=headers) as response:
+        async with session.post(url, data=multipart, headers=headers) as response:
             if response.status == 200:
                 response_data = await response.json()
-                return response_data
+                return {file_path_identifier_map[key]:value for key,value in response_data.items()}
             else:
                 print(f"Error uploading file: {response.status}")
                 return None
@@ -132,7 +136,7 @@ async def tracing(ci):
     ex_info_before = None
     while True:
         await asyncio.sleep(0.5)
-        ex_info = get_request("execution-info", query={"clientId", ci})
+        ex_info = get_request("execution-info", query={"clientId": ci})
         print(ex_info)
 
         if ex_info_before == ex_info:
@@ -176,7 +180,7 @@ Input:
                 else:
                     user_tipe_str = str(user_tipe)
                     if os.path.isfile(user_tipe_str):
-                        response_data = upload_file(user_tipe_str)
+                        response_data = await upload_file(user_tipe_str)
                         user_input[key] = response_data[user_tipe_str]
                     else:
                         user_input[key] = user_tipe_str

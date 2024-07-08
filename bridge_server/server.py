@@ -22,6 +22,7 @@ async def error_middleware(request, handler):
         response = await handler(request)
         return response
     except Exception as e:
+        logging.error(f"[MIDDLEWARE] INTERNAL ERROR / {e}")
         return web.Response(
             status=400,
             body=json.dumps({"detail":f"{e}"}),
@@ -169,7 +170,7 @@ class BridgeServer():
             logging.info(f"[WS] CLOSING / {sid}")
 
             await self.socket_manager.async_send_json(sid, {"status":"closed", "detail":"connection will be closed"}, update_life=False)
-            await self.socket_manager.async_release_sockets(sid)
+            asyncio.create_task(self.socket_manager.async_release_sockets(sid))
      
             if session is not None:
                 await session.close()
@@ -228,7 +229,7 @@ class BridgeServer():
         if self.socket_manager[sid].sockets_res is None:
             asyncio.create_task(self.websocket_connection(request, mode="REST"))
         
-        asyncio.sleep(0.5)
+        await asyncio.sleep(0.5)
         timeout_count = 0
         while self.socket_manager[sid].linked_server is None:
             await asyncio.sleep(self.timeout_interval)
@@ -305,14 +306,16 @@ class BridgeServer():
                     content_type=mime_type,
                     filename=os.path.basename(file_path),
                 )
-            headers = "Content-Type: multipart/form-data"
+
+            multipart = data()
+            headers = {"Content-Type": multipart.content_type}
             
-            await self.socket_manager.async_delete(sid)
+            asyncio.create_task(self.socket_manager.async_delete(sid))
             logging.debug(f"[GET] '{request.path}' / DELETE HISTORY / {sid}")
 
             return web.Response(
                 status=200,
-                body=data,
+                body=multipart,
                 headers=headers
             )
         else:

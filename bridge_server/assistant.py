@@ -55,11 +55,11 @@ class AsyncJsonWrapper:
 
 def make_workflow_alias_map(wf_dir, wf_alias_fn) -> dict:
     with open(wf_alias_fn, mode="r") as f:
-        jsonlike = [cur for cur in json.load(f) if cur.endswith(".json")]
+        jsonlike = json.load(f)
     
     wf_alias_map = jsonlike
     for cur in os.listdir(wf_dir):
-        if cur not in jsonlike.values():
+        if cur not in jsonlike.values() and cur.endswith(".json"):
             wf_alias_map[cur] = cur
         else:
             continue
