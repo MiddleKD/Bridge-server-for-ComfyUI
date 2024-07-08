@@ -53,7 +53,7 @@ async def get_workflow_info(workflow):
     try:
         async with aiohttp.ClientSession() as session:
             response = await session.get(
-                url=f'http://{server_address}/history?workflow={workflow}')
+                url=f'http://{server_address}/workflow-info?workflow={workflow}')
             return await response.json()
     except aiohttp.ServerDisconnectedError as e:
         print(e)
@@ -84,12 +84,13 @@ async def get_hisotry(client_id, download=True):
 
 
 async def upload_file(file_paths):
-    url = f"http://{server_address}/upload/image"
+    url = f"http://{server_address}/upload"
 
     if not isinstance(file_paths, list):
         file_paths = [file_paths]
     async with aiohttp.ClientSession() as session:
 
+        
         writer = aiohttp.MultipartWriter("form-data")
 
         for idx, file_path in enumerate(file_paths):

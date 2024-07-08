@@ -87,7 +87,7 @@ class BridgeServer():
                     total_progress += (len(wf_info) + sum(steps_list))
                     progress_message = {
                         'status': 'progress',
-                        'details': f'{cur_progress/total_progress*100:.2f}%'
+                        'detail': f'{cur_progress/total_progress*100:.2f}%'
                     }
                     await self.socket_manager.async_send_json(sid, progress_message)
                 
@@ -97,13 +97,13 @@ class BridgeServer():
                     if data['node'] is None and data['prompt_id'] == sid:
                         progress_message = {
                             'status': 'closed',
-                            'details': 'Execution is done'
+                            'detail': 'Execution is done'
                         }
                     else:
                         cur_progress += 1
                         progress_message = {
                             'status': 'progress',
-                            'details': f'{cur_progress/total_progress*100:.2f}%'
+                            'detail': f'{cur_progress/total_progress*100:.2f}%'
                         }
                     await self.socket_manager.async_send_json(sid, progress_message)
                     
@@ -114,7 +114,7 @@ class BridgeServer():
                     cur_progress += len(cached_nodes)
                     progress_message = {
                         'status': 'progress',
-                        'details': f'{cur_progress/total_progress*100:.2f}%'
+                        'detail': f'{cur_progress/total_progress*100:.2f}%'
                     }
                     await self.socket_manager.async_send_json(sid, progress_message)
 
@@ -136,7 +136,7 @@ class BridgeServer():
                 pass
             else:
                 raise ValueError(f"websocket connection mode must be 'PROXY' or 'REST' but got '{mode}'")
-            await self.socket_manager.async_send_json(sid, {"status":"connected", "details":"server connected"})
+            await self.socket_manager.async_send_json(sid, {"status":"connected", "detail":"server connected"})
 
             task = asyncio.create_task(self.track_progress(sid))
             if mode == "PROXY":
@@ -145,7 +145,7 @@ class BridgeServer():
                     if self.socket_manager[sid].ws_connection_status in ["closed", "error"]:
                         break
                     else:
-                        await self.socket_manager.async_send_json(sid, {"status":"listening", "details":"server is listening"}, update_life=False)
+                        await self.socket_manager.async_send_json(sid, {"status":"listening", "detail":"server is listening"}, update_life=False)
                         if timeout_count >= self.limit_timeout_count:
                             raise TimeoutError(f"timeout count: {timeout_count}")
                         timeout_count += 1
@@ -155,20 +155,20 @@ class BridgeServer():
 
         except aiohttp.ServerDisconnectedError as e:
             logging.warning(f"[WS RES] SERVER DISCONNECTED ERROR / {sid}")
-            await self.socket_manager.async_send_json(sid, {"status":"error", "details":"server disconnected"})
+            await self.socket_manager.async_send_json(sid, {"status":"error", "detail":"server disconnected"})
         except TimeoutError as e:
             logging.warning(f"[WS RES] TIMEOUT ERROR / {sid}")
-            await self.socket_manager.async_send_json(sid, {"status":"error", "details":f"time out error: exceed {self.limit_timeout_count * self.timeout_interval}s"})
+            await self.socket_manager.async_send_json(sid, {"status":"error", "detail":f"time out error: exceed {self.limit_timeout_count * self.timeout_interval}s"})
         except aiohttp.ServerConnectionError as e:
             logging.error(f"[WS REQ] SERVER CONNECTION ERROR / {sid}")
-            await self.socket_manager.async_send_json(sid, {"status":"error", "details":"server connection error"})
+            await self.socket_manager.async_send_json(sid, {"status":"error", "detail":"server connection error"})
         except Exception as e:
             logging.error(f"[WS] UNKNOWN ERROR / {str(e)} / {sid}")
-            await self.socket_manager.async_send_json(sid, {"status":"error", "details":"internal server error"})
+            await self.socket_manager.async_send_json(sid, {"status":"error", "detail":"internal server error"})
         finally:
             logging.info(f"[WS] CLOSING / {sid}")
 
-            await self.socket_manager.async_send_json(sid, {"status":"closed", "details":"connection will be closed"}, update_life=False)
+            await self.socket_manager.async_send_json(sid, {"status":"closed", "detail":"connection will be closed"}, update_life=False)
             await self.socket_manager.async_release_sockets(sid)
      
             if session is not None:
@@ -243,7 +243,7 @@ class BridgeServer():
         return web.Response(status=200)
     
     async def upload_image(self, request):
-        reader = await request.multipart()
+        reader= await request.multipart()
 
         logging.info(f"[POST] '{request.path}'")
 
@@ -251,12 +251,13 @@ class BridgeServer():
         async for part in reader:
 
             try:
-                file_name = part.headers.get('Content-Disposition', '').split('filename=')[1].strip('"')
+                file_identifier = part.name
+                file_name = part.filename
                 file_name = os.path.basename(file_name)
                 file_data = await part.read()
             
                 fn = save_binary_file(file_data, file_name, directory=os.path.join(self.comfyui_dir, "input"))
-                fns[part.headers.get("ori_file_id", None)] = fn
+                fns[file_identifier] = fn
                 logging.debug(f"[POST] '{request.path}' / {fn} saved")
         
             except Exception as e:
