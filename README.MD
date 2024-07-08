@@ -1,4 +1,5 @@
 # 🎨 API specification
+ComfyUI의 workflow를 API로 제공하는 **bridge server for comfyui(proxy server)의 API 명세서**입니다. 이 서버는 웹소켓 통신과 REST 통신을 모두 지원하고, 자동으로 리소스를 관리하며 로드밸런싱 기능 또한 제공합니다. 하나의 bridge server만으로 여러 ComfyUI 서버를 통합해보세요!
 
 # 📌 Index
 Core API:
