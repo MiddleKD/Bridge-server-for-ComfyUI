@@ -416,7 +416,8 @@ bridge_server는 로드밸런서 역할을 수행할 수 있습니다. **쿼리�
     - **Content-Type:** application/json
       ```json
       {"detail": "server memory free now / ALL"}
-      or
+      ```
+      ```json
       {"detail": "server memory free now / {client_id}"}
       ```
 
