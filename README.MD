@@ -286,7 +286,7 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
     - **상태 코드:** 200 OK
     - **Content-Type:** application/json
       ```json
-      ["text-to-image", "image-to-image", "image-to-video", etc.]
+      ["text-to-image", "image-to-image", "image-to-video", "..."]
       ```
 
 - error response
@@ -333,16 +333,16 @@ curl -X GET "http://{your_server_address}/workflow-list"
       | error | 오류가 발생, comfy 서버와 연결이 끊어질 것 |
     - **Content-Type:** application/json
       ```json
-      {'status': 'connected', 'detail': 'server connected'}
+      {"status": "connected", "detail": "server connected"}
       ```
       ```json
-      {'status': 'progress', 'detail': '12.62%'}
+      {"status": "progress", "detail": "12.62%"}
       ```
       ```json
-      {'status': 'closed', 'detail': 'Execution is done'}
+      {"status": "closed", "detail": "Execution is done"}
       ```
       ```json
-      {'status': 'error', 'detail': 'time out error: exceed 60s'}
+      {"status": "error", "detail": "time out error: exceed 60s"}
       ```
 
 - error response
