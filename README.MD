@@ -251,9 +251,7 @@ curl -X POST "http://{your_server_address}/generate-based-workflow?clientId={you
       {
         "detail": "The client ID has not been submitted to the server before. It is not recognized. / {client_id}"
       }
-
-      or
-
+      또는
       {
         "detail": "No contents with that client id / {client_id}"
       }
@@ -291,7 +289,7 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
     - **상태 코드:** 200 OK
     - **Content-Type:** application/json
       ```json
-      ["text-to-image", "image-to-image", "image-to-video", ...]
+      ["text-to-image", "image-to-image", "image-to-video", etc.]
       ```
 
 - error response
@@ -339,11 +337,11 @@ curl -X GET "http://{your_server_address}/workflow-list"
     - **Content-Type:** application/json
       ```json
       {'status': 'connected', 'detail': 'server connected'}
-      or
+      또는
       {'status': 'progress', 'detail': '12.62%'}
-      or
+      또는
       {'status': 'closed', 'detail': 'Execution is done'}
-      or
+      또는
       {'status': 'error', 'detail': 'time out error: exceed 60s'}
       ```
 
@@ -434,7 +432,7 @@ bridge_server는 로드밸런서 역할을 수행할 수 있습니다. **쿼리�
 ```bash
 curl -X POST "http://{your_server_address}/free"
 ```
-or
+또는
 ```bash
 curl -X POST "http://{your_server_address}/free?clientId={your_client_id}"
 ```
