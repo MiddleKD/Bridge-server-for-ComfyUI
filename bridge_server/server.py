@@ -1,18 +1,20 @@
 import json, os
+import tempfile
 import asyncio
 import aiohttp
 import logging
 from aiohttp import web
+from security import FileValidator
 from socket_manager import SocketManager
 from urls import setup_routes
 from assistant import (queue_prompt,
                     get_history,
                     get_queue_state,
                     get_parsed_input_nodes,
+                    upload_image,
                     post_free_memory,
                     parse_workflow_prompt,
-                    parse_outputs,
-                    save_binary_file,
+                    process_outputs,
                     make_workflow_alias_map,
                     AsyncJsonWrapper)
 
@@ -35,15 +37,14 @@ class BridgeServer():
                  loop, 
                  state_fn:str,
                  wf_alias_fn:str,
-                 comfyui_dir:str,
                  wf_dir:str, 
                  server_address:list, 
-                 limit_timeout_count:int, 
+                 limit_timeout_count:int,
                  timeout_interval:int,
+                 allowed_mime_type_extension_map:dict,
                  upload_max_size:int=1024**2*100
                  ) -> None:
         self.loop = loop
-        self.comfyui_dir = comfyui_dir
         self.wf_dir = wf_dir
         self.server_address = server_address
         self.limit_timeout_count = limit_timeout_count
@@ -51,10 +52,12 @@ class BridgeServer():
         self.upload_max_size = upload_max_size
 
         self.state_obj = AsyncJsonWrapper(state_fn)
+        self.validator = FileValidator(allowed_mime_type_extension_map)
         self.wf_alias_map = make_workflow_alias_map(wf_dir, wf_alias_fn)
 
     async def init_app(self):
         app = web.Application(middlewares=[error_middleware], client_max_size=self.upload_max_size)
+        # app = web.Application(client_max_size=self.upload_max_size)
         setup_routes(app, self)
 
         self.socket_manager = SocketManager(loop=self.loop, interval=self.timeout_interval, life_seconds=self.limit_timeout_count*self.timeout_interval)
@@ -164,11 +167,10 @@ class BridgeServer():
             logging.error(f"[WS REQ] SERVER CONNECTION ERROR / {sid}")
             await self.socket_manager.async_send_json(sid, {"status":"error", "detail":"server connection error"})
         except Exception as e:
-            logging.error(f"[WS] UNKNOWN ERROR / {str(e)} / {sid}")
+            logging.error(f"[WS] UNKNOWN ERROR / {e} / {sid}")
             await self.socket_manager.async_send_json(sid, {"status":"error", "detail":"internal server error"})
         finally:
             logging.info(f"[WS] CLOSING / {sid}")
-
             await self.socket_manager.async_send_json(sid, {"status":"closed", "detail":"connection will be closed"}, update_life=False)
             asyncio.create_task(self.socket_manager.async_release_sockets(sid))
      
@@ -184,9 +186,12 @@ class BridgeServer():
         logging.info(f"[WS RES] HANDSHAKE / {sid}")
 
     async def _ws_req_connection(self, sid):
-        server_address = await self.get_not_busy_server_address()
-        self.socket_manager[sid].linked_server = server_address
-        logging.debug(f"[WS REQ] server allocated to {server_address} / {sid}")
+        if self.socket_manager[sid].linked_server is None:
+            server_address = await self.get_not_busy_server_address()
+            self.socket_manager[sid].linked_server = server_address
+            logging.debug(f"[WS REQ] server allocated to {server_address} / {sid}")
+        else:
+            server_address = self.socket_manager[sid].linked_server
 
         session = aiohttp.ClientSession()
         try: 
@@ -219,12 +224,7 @@ class BridgeServer():
 
         workflow = data.pop("workflow", None)
         if not isinstance(workflow, str): raise TypeError(f"workflow is required and must be and str, but got {type(sid).__str__()}")
-        
         workflow = self.wf_alias_map[workflow]
-        kwargs = data
-
-        prompt = parse_workflow_prompt(os.path.join(self.wf_dir, workflow), **kwargs)
-        self.socket_manager[sid].wf_info = prompt
 
         if self.socket_manager[sid].sockets_res is None:
             asyncio.create_task(self.websocket_connection(request, mode="REST"))
@@ -236,8 +236,25 @@ class BridgeServer():
             if timeout_count >= self.limit_timeout_count:
                 raise TimeoutError(f"timeout count: {timeout_count}")
             timeout_count += 1
-        prompt = queue_prompt(prompt, sid, self.socket_manager[sid].linked_server)
         
+        kwargs = {}
+        for key, value in data.items():
+            if isinstance(value, str) and value.startswith("bridge_server_comfyui_"):
+                tmp_path = os.path.join(tempfile.gettempdir(), value)
+                mime_type = self.validator.get_mime_type_from_file(file_path=tmp_path)
+                extension = self.validator.mime_extension_map[mime_type]
+                upload_result = upload_image(input_path=tmp_path,
+                                            file_name=os.path.basename(tmp_path)+extension,
+                                            server_address=self.socket_manager[sid].linked_server)
+                kwargs[key] = os.path.join(upload_result["subfolder"], upload_result["name"])
+                os.remove(tmp_path)
+            else:
+                kwargs[key] = value
+                
+        prompt = parse_workflow_prompt(os.path.join(self.wf_dir, workflow), **kwargs)
+        self.socket_manager[sid].wf_info = prompt
+        prompt = queue_prompt(prompt, sid, self.socket_manager[sid].linked_server)
+                
         self.state_obj.generation_count += 1
         await self.state_obj.update()
 
@@ -251,8 +268,14 @@ class BridgeServer():
         )
     
     async def upload(self, request):
-        reader= await request.multipart()
+        sid = request.rel_url.query.get('clientId', None)
+        if not isinstance(sid, str): raise TypeError(f"clientId is required and must be and str, but got {type(sid).__str__()}")
 
+        if self.socket_manager[sid].linked_server is None:
+            server_address = await self.get_not_busy_server_address()
+            self.socket_manager[sid].linked_server = server_address
+        
+        reader= await request.multipart()
         logging.info(f"[POST] '{request.path}'")
 
         fns={}
@@ -260,20 +283,30 @@ class BridgeServer():
 
             try:
                 file_identifier = part.name
-                file_name = part.filename
-                file_name = os.path.basename(file_name)
+                file_name = os.path.basename(part.filename)
                 file_data = await part.read()
-            
-                fn = save_binary_file(file_data, file_name, directory=os.path.join(self.comfyui_dir, "input"))
-                fns[file_identifier] = fn
-                logging.debug(f"[POST] '{request.path}' / {fn} saved")
+
+                is_valid, detail_about, tmp_path = await self.validator.validate_and_sanitize_file(file_data, file_name, return_tmp_path=True)
+
+                if is_valid == True:
+                    if "image" in detail_about:
+                        pass
+                    else:
+                        os.remove(tmp_path)
+                        raise TypeError(f"{detail_about} is not allowed type / {file_name}")
+                else:
+                    os.remove(tmp_path)
+                    raise TypeError(f"{detail_about} / {file_name}")
+                
+                fns[file_identifier] = os.path.basename(tmp_path)
+                logging.debug(f"[POST] '{request.path}' / {file_name} saved / {sid}")
         
             except Exception as e:
-                logging.error(f"[POST] '{request.path}' / {file_name} can't save / {str(e)}")
+                logging.error(f"[POST] '{request.path}' / {file_name} can't save / {e} / {sid}")
 
                 return web.Response(
                     status=400,
-                    body=json.dumps({"detail":f"{file_name} can't save"}),
+                    body=json.dumps({"detail":f"{file_name} can't save / {e}"}),
                     headers={"Content-Type": "application/json"}
                 )
 
@@ -302,17 +335,23 @@ class BridgeServer():
         if history is not None:
             output = history["outputs"],
             if isinstance(output, tuple):
-                output = (output)
+                output = output[0]
             
             data = aiohttp.FormData()
-            file_paths, mime_types, file_contents = parse_outputs(output[0], root_dir=self.comfyui_dir)
-            for idx, (file_path, mime_type, file_content) in enumerate(zip(file_paths, mime_types, file_contents)):
-                data.add_field(
-                    f'result_{idx}',
-                    file_content,
-                    content_type=mime_type,
-                    filename=os.path.basename(file_path),
-                )
+            file_names, file_contents = process_outputs(output, server_address)
+            for idx, (file_name, file_content) in enumerate(zip(file_names, file_contents)):
+                is_valid, detail_about, _ = await self.validator.validate_and_sanitize_file(file_content, file_name)
+                
+                if is_valid == True:
+                    data.add_field(
+                        f'result_{idx}',
+                        file_content,
+                        content_type=detail_about,
+                        filename=file_name,
+                    )
+                else:
+                    logging.debug(f"{detail_about} / {file_name} / {sid}")
+                    continue
 
             multipart = data()
             headers = {"Content-Type": multipart.content_type}
@@ -373,4 +412,4 @@ class BridgeServer():
         return web.Response(status=200, body=json.dumps(node_info), content_type="application/json")
     
     async def main_page(self, _):
-        return web.Response(text="Hello, this is ComfyUI Bridge Server! (made by middlek)")
+        return web.Response(text="Hello, this is bridge server for comfyui! (made by middlek)")

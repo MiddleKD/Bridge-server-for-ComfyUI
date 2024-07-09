@@ -34,6 +34,7 @@ class SocketManager:
                     await param_manager.sockets_res.send_json(message)
                     logging.debug(f"[WS RES] SEND OK / {message} / {sid}")
             except Exception as err:
+                param_manager.ws_connection_status = "error"
                 logging.debug(f"[WS RES] SEND FAILED / {err} / {message} / {sid}")
             if update_life == True:
                 if isinstance(message, dict):

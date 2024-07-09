@@ -66,7 +66,7 @@ async def get_history(client_id, download=True):
         async with aiohttp.ClientSession() as session:
             response = await session.get(
                 url=f'http://{server_address}/history?clientId={client_id}')
-
+            
             if download == True and response.status == 200:
                 
                 reader = aiohttp.MultipartReader.from_response(response)
@@ -82,8 +82,8 @@ async def get_history(client_id, download=True):
         await session.close()
 
 
-async def upload_file(file_paths):
-    url = f"http://{server_address}/upload"
+async def upload_file(file_paths, client_id):
+    url = f"http://{server_address}/upload?clientId={client_id}"
 
     if not isinstance(file_paths, list):
         file_paths = [file_paths]
@@ -151,7 +151,7 @@ async def run_client(client_id, data):
 
 async def main(ci_list, wf_list, is_test=False):
     user_inputs = []
-    for wf in wf_list:
+    for wf, ci in zip(wf_list, ci_list):
         wf_info = await get_workflow_info(wf)
         print(wf)
         user_input = {"workflow":wf}
@@ -173,7 +173,7 @@ Input:
                 else:
                     user_tipe_str = str(user_tipe)
                     if os.path.isfile(user_tipe_str):
-                        response_data = await upload_file(user_tipe_str)
+                        response_data = await upload_file(user_tipe_str, ci)
                         user_input[key] = response_data[user_tipe_str]
                     else:
                         user_input[key] = user_tipe_str

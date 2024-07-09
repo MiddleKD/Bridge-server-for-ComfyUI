@@ -1,0 +1,24 @@
+{   
+    "LOGGING_LEVEL":"WARN",
+    "CURRENT_STATE":"./current_state.json",
+    "WORKFLOW_ALIAS":"./workflow_alias.json",
+    "WORKFLOW_DIR":"./workflows",
+    "LIMIT_TIMEOUT_COUNT":60,
+    "TIMEOUT_INTERVAL":1,
+    "UPLOAD_MAX_SIZE":100,
+    "ALLOWED_MIME_TYPE_EXTENSION_MAP":{
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+        "video/mp4": ".mp4",
+        "video/mpeg": ".mpeg",
+        "video/webm": ".webm",
+        "audio/mpeg": ".mp3",
+        "audio/wav": ".wav",
+        "audio/ogg": ".ogg",
+        "text/plain": ".txt",
+        "text/csv": ".csv",
+        "application/pdf": ".pdf"
+    }
+}

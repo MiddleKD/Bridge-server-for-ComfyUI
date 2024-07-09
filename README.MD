@@ -118,7 +118,11 @@ curl -X GET "http://{your_server_address}/workflow-info?workflow={your_workflow_
 ### endpoint
 `POST /upload`
 ### describe
-클라이언트가 이미지를 업로드하면 서버가 지정된 디렉토리에 이미지를 저장합니다. 각 파일은 고유한 파일명으로 저장되며, 참조용으로 원본 파일 식별자를 제공합니다. 클라이언트는 원본 파일 식별자를 통해, 서버에 어떤 이름으로 이미지를 저장했는지 확인해야 합니다.
+클라이언트가 이미지를 업로드하면 브릿지 서버의 `/tmp/` 디렉토리에 이미지를 임시 저장합니다. 각 파일은 고유한 파일명으로 저장되며, 참조용으로 원본 파일 식별자를 제공합니다. 클라이언트는 원본 파일 식별자를 통해, 서버에 어떤 이름으로 이미지를 저장했는지 확인해야 합니다.
+### query
+| key   | required | description |
+|--------|------|------|
+| clientId  | yes | 해당 AI 요청 맥락에서 공유하는 고유 식별값, 만약 하나의 프로세스의 n개의 파일이 필요하다면, n개의 요청 모두 같은 client id를 사용해야 합니다. |
 ### paramter
 - **Content-Type:** multipart/form-data; boundary=----{your_boundary}
 - **body:**
@@ -135,9 +139,9 @@ curl -X GET "http://{your_server_address}/workflow-info?workflow={your_workflow_
     - **Content-Type:** application/json
       ```json
       {
-        "identifier_1": "saved_path_1.png",
-        "identifier_2": "saved_path_2.png",
-        "identifier_3": "saved_path_3.png"
+        "identifier_1": "saved_path_1",
+        "identifier_2": "saved_path_2",
+        "identifier_3": "saved_path_3"
       }
       ```
 - error response
@@ -150,7 +154,7 @@ curl -X GET "http://{your_server_address}/workflow-info?workflow={your_workflow_
       ```
 ### tutorial commands
 ```bash
-curl -X POST "http://localhost:8000/upload" \ 
+curl -X POST "http://localhost:8000/upload?clientId={your_client_id}" \ 
 -H "Content-Type: multipart/form-data" \
 -F "{your_identifier_1}=@{your_file_path_1};filename={your_file_name_1}" \
 -F "{your_identifier_2}=@{your_file_path_2};filename={your_file_name_2}" \
@@ -162,20 +166,20 @@ AI 프로세스를 요청합니다.
 ### endpoint
 `POST /generate-based-workflow`
 ### describe
-여러 정보를 통합하여 prompt를 파싱한 후 comfyui의 AI 대기열에 등록합니다.
+여러 정보를 통합하여 prompt를 파싱한 후 comfyui의 AI 대기열에 등록합니다. 실행할 때 `/tmp/` 디렉토리에 저장했던 임시파일들을 comfyui서버로 업로드 요청합니다.
 
 이 엔드포인트를 실행하기 전에 선행해야할 작업이 있습니다.
 
 0. **[WS] websocket connection(Optional)** 실행 상황을 웹소켓 메시지로 통신합니다. 사용을 권장합니다. 
 1. **[GET] workflow info:** workflow를 실행시키기 위해 필요한 input 정보를 가져옵니다.
 2. **[POST] upload:** 1번에서 가져온 input 정보에 따라, 필요한 추가 파일을 업로드합니다.
-3. **Parsing Prompt:** 2번에 사져온 식별자와 파일 경로를 기반으로 prompt를 파싱합니다.
+3. **Parsing Prompt:** 2번에 가져온 식별자와 파일 경로를 기반으로 prompt를 파싱합니다.
 
 더 자세한 내용은 `root/client/*_example.py`를 참고해주시기 바랍니다.
 ### query
 | key   | required | description |
 |--------|------|------|
-| clientId  | yes | 해당 AI 요청 맥락에서 공유하는 고유 식별값(uuid 추천), 웹소켓이 열려있다면 열 때 사용한 client id |
+| clientId  | yes | 해당 AI 요청 맥락에서 공유하는 고유 식별값(uuid 추천), 웹소켓이 열려있다면 열 때 사용한 client_id |
 ### paramter
 - **Content-Type:** application/json
 - **body:**
@@ -190,7 +194,7 @@ AI 프로세스를 요청합니다.
   {
     "workflow": "image-to-image", 
     "6/text": "the awesome cat", 
-    "10/image": "a_photo_of_my_face.png",
+    "10/image": "bridge_server_comfyui_a_photo_of_my_face",
     "15/seed": 1234
   }
   ```

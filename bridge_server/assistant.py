@@ -1,26 +1,10 @@
 import os, json
+import urllib.error
 import aiofiles
 import json
 from asyncio import Lock
 import urllib
-import magic
 from requests_toolbelt import MultipartEncoder
-
-
-# Assume mime type
-def get_mime_type(file_path):
-    mime = magic.Magic(mime=True)
-    mime_type = mime.from_file(file_path)
-    if mime_type is None:
-        mime_type = 'application/octet-stream'
-    return mime_type
-
-def get_mime_type_from_binary(binary_data):
-    mime = magic.Magic(mime=True)
-    mime_type = mime.from_buffer(binary_data)
-    if mime_type is None:
-        mime_type = 'application/octet-stream'
-    return mime_type
 
 # Manage json file
 class AsyncJsonWrapper:
@@ -108,21 +92,52 @@ def post_interrupt(server_address):
     with urllib.request.urlopen(request) as response:
         return json.loads(response.read())
 
-def upload_image(file_data, name, server_address, image_type="input", overwrite=False):
+def get_image(filename, server_address, image_type="output", subfolder=None, preview_format=None, quality=None, channel=None):
+    query_params = {
+        'filename': filename,
+        'type': image_type
+    }
 
-    mime_type = get_mime_type_from_binary(file_data)
+    if subfolder:
+        query_params['subfolder'] = subfolder
+
+    if preview_format:
+        preview_value = preview_format
+        if quality:
+            preview_value += f";{quality}"
+        query_params['preview'] = preview_value
+
+    if channel:
+        query_params['channel'] = channel
+
+    query_string = urllib.parse.urlencode(query_params)
+    request = urllib.request.Request(f"http://{server_address}/view?{query_string}")
+
+    with urllib.request.urlopen(request) as response:
+        if response.status == 200:
+            image_data = response.read()
+            return image_data
+        else:
+            raise urllib.error.HTTPError(msg="Bad request on get image")
+
+def upload_image(input_path, file_name, server_address, image_type="input", overwrite=False):
+  with open(input_path, 'rb') as file:
     multipart_data = MultipartEncoder(
-      fields={
-        'image': (name, file_data, mime_type),
+      fields= {
+        'image': (file_name, file, 'image/png'),
         'type': image_type,
         'overwrite': str(overwrite).lower()
       }
     )
-    headers = {'Content-Type': multipart_data.content_type}
-    
-    request = urllib.request.Request(f"http://{server_address}/upload/image", data=multipart_data, headers=headers)
+
+    data = multipart_data
+    headers = { 'Content-Type': multipart_data.content_type }
+    request = urllib.request.Request("http://{}/upload/image".format(server_address), data=data, headers=headers)
     with urllib.request.urlopen(request) as response:
-      return response.read()
+        if response.status == 200:
+            return json.loads(response.read())
+        else:
+            raise urllib.error.HTTPError(msg="Bad request on upload image")
 
 # Parsing text
 def get_parsed_input_nodes(workflow_json):
@@ -176,51 +191,21 @@ def parse_workflow_prompt(workflow_path, **kwargs):
  
     return prompt
 
-def parse_outputs(outputs:dict, root_dir):
-    file_paths, mime_types, file_contents = [], [], []
+def process_outputs(outputs:dict, server_address):
+    file_names, file_contents = [], []
 
     output_nodes = list(outputs.values())
     for output_node in output_nodes:
-        for key, values in output_node.items():
+        for _, values in output_node.items():
             for value in values:
                 if not isinstance(value, dict): continue
-                if value.get("filename", None) ==  None: continue
+                if value.get("type") != "output": continue
+                file_name = value.get("filename", None)
+                if file_name == None: continue
 
-                file_path = os.path.join(root_dir, "output", value["filename"])
-                if not os.path.isfile(file_path): continue
-                mime_type = get_mime_type(file_path)
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
+                file_content = get_image(file_name, server_address, channel="RGB")
 
-                file_paths.append(file_path)
-                mime_types.append(mime_type)
+                file_names.append(file_name)
                 file_contents.append(file_content)
 
-    return file_paths, mime_types, file_contents
-
-
-# File system
-def save_binary_file(data, file_name, directory='../input', return_root_dir=False):
-    # Ensure the directory exists
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    # Split the file name into base name and extension
-    base_name, extension = os.path.splitext(file_name)
-    new_file_name = file_name
-
-    # Check if the file exists and find a new name if it does
-    counter = 1
-    while os.path.exists(os.path.join(directory, new_file_name)):
-        new_file_name = f"{base_name} ({counter}){extension}"
-        counter += 1
-
-    # Save the binary data to the file
-    save_path = os.path.join(directory, new_file_name)
-    with open(save_path, 'wb') as file:
-        file.write(data)
-
-    if return_root_dir==True:
-        return save_path
-    else:
-        return new_file_name
+    return file_names, file_contents
