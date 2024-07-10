@@ -1,3 +1,10 @@
-{"text bg":"bg_gen_text_api.json",
-"style bg":"bg_gen_refstyle_api.json",
-"image-to-image":"I2I_basic.json"}
+{
+    "image-to-image":"I2I_basic_api.json",
+    "text-to-image":"T2I_basic_api.json",
+    "product-bg-generation-text":"productfix_text_api.json",
+    "product-bg-generation-style":"productfix_adapter_api.json",
+    "git-header-maker":"git_header_api.json",
+    "image-expansion":"I2I_expand_api.json",
+    "image-shift":"I2I_shift_api.json",
+    "anime-frame-augmentation":"VFI_anime_api.json"
+}

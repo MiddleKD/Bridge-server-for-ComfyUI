@@ -1,5 +1,6 @@
 image-to-image
-I2I_expand_api.json
-I2I_shift_api.json
-I2I_stylecomp.json
-T2I_juggernaut.json
+text-to-image
+product-bg-generation-text
+image-expansion
+image-shift
+product-bg-generation-style
