@@ -122,6 +122,12 @@ class BridgeServer():
                     }
                     await self.socket_manager.async_send_json(sid, progress_message)
 
+                if message['type'] == "prompt_outputs_failed_validation":
+                    progress_message = {
+                            'status': 'error',
+                            'detail': 'prompt is not validated'
+                        }
+                    await self.socket_manager.async_send_json(sid, progress_message)
             else:
                 continue
         logging.info(f"[WS REQ] TRACING DONE / {sid}")
