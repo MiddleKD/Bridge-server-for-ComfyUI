@@ -86,6 +86,7 @@ class ParamManager:
         self._wf_info = None
         self._ws_connection_status = None
         self._execution_info = None
+        self._comfyui_prompt_id = None
         self._history_life = datetime.datetime.now()
 
     async def release_sockets(self):
@@ -97,6 +98,7 @@ class ParamManager:
         self.sockets_req = None
         self.ws_connection_status = None
         self.wf_info = None
+        self.comfyui_prompt_id = None
 
     async def release(self):
         await self.release_sockets()
@@ -125,6 +127,9 @@ class ParamManager:
     def execution_info(self):
         return self._execution_info
     @property
+    def comfyui_prompt_id(self):
+        return self._comfyui_prompt_id
+    @property
     def history_life(self):
         return self._history_life
     
@@ -148,3 +153,6 @@ class ParamManager:
     def execution_info(self, value):
         self._execution_info = value
         self.update_life()
+    @comfyui_prompt_id.setter
+    def comfyui_prompt_id(self, value):
+        self._comfyui_prompt_id = value

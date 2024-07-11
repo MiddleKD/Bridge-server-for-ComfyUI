@@ -79,7 +79,6 @@ class BridgeServer():
 
             if isinstance(out, str):
                 message = json.loads(out)
-                
                 if message['type'] == 'execution_start':
                     logging.info(f"[WS REQ] EXECUTION START / {sid}")
 
@@ -120,6 +119,7 @@ class BridgeServer():
                         'status': 'progress',
                         'detail': f'{cur_progress/total_progress*100:.2f}%'
                     }
+                    self.socket_manager[sid].comfyui_prompt_id = data['prompt_id']
                     await self.socket_manager.async_send_json(sid, progress_message)
 
                 if message['type'] == "prompt_outputs_failed_validation":
@@ -334,7 +334,7 @@ class BridgeServer():
                 headers={"Content-Type": "application/json"}
             )
         
-        history = get_history(sid, server_address)
+        history = get_history(self.socket_manager[sid].comfyui_prompt_id, server_address)
         history = history.get(sid, None)
         logging.debug(f"[GET] '{request.path}' / GET HISTORY / {sid}")
 
