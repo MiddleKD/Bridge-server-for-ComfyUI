@@ -102,6 +102,8 @@ class BridgeServer():
                             'status': 'closed',
                             'detail': 'Execution is done'
                         }
+                        self.socket_manager[sid].comfyui_prompt_id = data['prompt_id']
+                        logging.debug(f"[WS REQ] EXECUTION DONE / {sid}")
                     else:
                         cur_progress += 1
                         progress_message = {
@@ -111,7 +113,6 @@ class BridgeServer():
                     await self.socket_manager.async_send_json(sid, progress_message)
                     
                 if message['type'] == 'execution_cached':
-                    logging.debug(f"[WS REQ] EXECUTION DONE / {sid}")
                     
                     cached_nodes = message['data']['nodes']
                     cur_progress += len(cached_nodes)
@@ -119,7 +120,6 @@ class BridgeServer():
                         'status': 'progress',
                         'detail': f'{cur_progress/total_progress*100:.2f}%'
                     }
-                    self.socket_manager[sid].comfyui_prompt_id = data['prompt_id']
                     await self.socket_manager.async_send_json(sid, progress_message)
 
                 if message['type'] == "prompt_outputs_failed_validation":
