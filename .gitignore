@@ -1,5 +1,5 @@
 lib/
-!web_editor/web/lib/
+!comfyui_patch/web/lib/
 bridge_server/workflows/*.json
 
 # Byte-compiled / optimized / DLL files
