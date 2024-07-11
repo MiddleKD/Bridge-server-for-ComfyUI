@@ -334,8 +334,9 @@ class BridgeServer():
                 headers={"Content-Type": "application/json"}
             )
         
-        history = get_history(self.socket_manager[sid].comfyui_prompt_id, server_address)
-        history = history.get(sid, None)
+        prompt_id = self.socket_manager[sid].comfyui_prompt_id
+        history = get_history(prompt_id, server_address)
+        history = history.get(prompt_id, None)
         logging.debug(f"[GET] '{request.path}' / GET HISTORY / {sid}")
 
         if history is not None:

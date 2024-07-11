@@ -49,7 +49,7 @@ class SocketManager:
 
     async def async_delete(self, sid):
         if sid in self.sid_param_map:
-            delete_history(sid, self.sid_param_map[sid].comfyui_prompt_id)
+            delete_history(self.sid_param_map[sid].comfyui_prompt_id, self.sid_param_map[sid].linked_server)
             await self.sid_param_map[sid].release()
             del self.sid_param_map[sid]
 
