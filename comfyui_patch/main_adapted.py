@@ -18,7 +18,7 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     # server = server.PromptServer(loop)
-    server = server_adapted.BridgeServer(loop) # bridge_server_comfyui(middlek)
+    server = server_adapted.BridgeServer(loop)
     q = execution.PromptQueue(server)
 
     extra_model_paths_config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extra_model_paths.yaml")
@@ -29,11 +29,7 @@ if __name__ == "__main__":
         for config_path in itertools.chain(*args.extra_model_paths_config):
             load_extra_path_config(config_path)
 
-    init_builtin_extra_nodes()
-    if not args.disable_all_custom_nodes:
-        init_external_custom_nodes()
-    else:
-        logging.info("Skipping loading of custom nodes")
+    nodes.init_extra_nodes(init_custom_nodes=not args.disable_all_custom_nodes)
 
     cuda_malloc_warning()
 
