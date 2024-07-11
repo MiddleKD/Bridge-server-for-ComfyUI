@@ -8,6 +8,7 @@
 - [How to use](#-how-to-use)
 - [API specification](#-api-specification)
 - [Configuration guide](#-configuration-guide)
+- [Test from client](#-test-from-client)
 
 ## 🚀 Introduction
 Bridge-server-for-ComfyUI는 IP 공유를 동의한 PC들에 설치된 ComfyUI와 함께 작동하여 자원 제약을 극복합니다. 보다 편하고 효율적인 AI 워크플로우를 제공하는 브릿지 서버입니다.
@@ -125,3 +126,5 @@ API 명세서는 [여기](bridge_server/README.md)서 확인할 수 있습니다
         proxy_pass http:#127.0.0.1:8000;	# 내부 Bridge server 혹은 ComfyUI의 address입니다.
     ...
     ```
+## 🧑‍💻 Test from client
+Bridge server의 API를 이용하는 client의 예시는 [여기](client/README.md)서 확인할 수 있습니다.
