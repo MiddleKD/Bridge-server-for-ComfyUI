@@ -22,7 +22,7 @@ def patch(src, dest):
         for file in files:
             src_file_path = os.path.join(root, file)
             dest_file_path = os.path.join(dest_path, file)
-            shutil.move(src_file_path, dest_file_path)
+            shutil.copy(src_file_path, dest_file_path)
 
         for dir in dirs:
             dest_dir_path = os.path.join(dest_path, dir)
