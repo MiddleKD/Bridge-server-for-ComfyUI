@@ -98,7 +98,7 @@ class BridgeServer():
                 if message['type'] in ('progress', 'executing'):
                     data = message['data']
 
-                    if data['node'] is None and data['prompt_id'] == sid:
+                    if data['node'] is None:
                         progress_message = {
                             'status': 'closed',
                             'detail': 'Execution is done'

@@ -1,5 +1,5 @@
 {   
-    "LOGGING_LEVEL":"INFO",
+    "LOGGING_LEVEL":"DEBUG",
     "CURRENT_STATE":"./current_state.json",
     "WORKFLOW_ALIAS":"./workflow_alias.json",
     "WORKFLOW_DIR":"./workflows",
