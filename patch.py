@@ -30,8 +30,10 @@ def patch(src, dest):
                 os.makedirs(dest_dir_path)
 
 if __name__ == "__main__":
+    default_src = os.path.join(os.path.dirname(__file__), "comfyui_patch")
+    
     parser = argparse.ArgumentParser(description='Recursively move files from src to dest, overwriting existing files.')
-    parser.add_argument('--src', type=str, help='Source directory from where files will be moved.', default="./comfyui_patch")
+    parser.add_argument('--src', type=str, help='Source directory from where files will be moved.', default=default_src)
     parser.add_argument('--dest', type=str, help='Destination directory where files will be moved.')
 
     args = parser.parse_args()

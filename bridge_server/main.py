@@ -19,7 +19,7 @@ async def main():
     host = os.getenv("HOST")
     port = os.getenv("PORT")
     servers_str = os.getenv('COMFYUI_SERVERS')
-    config_fn = os.getenv("CONFIG")
+    config_fn = os.path.join(os.path.dirname(__file__), os.getenv("CONFIG"))
     
     with open(config_fn, mode="r") as f:
         configs = json.load(f)
