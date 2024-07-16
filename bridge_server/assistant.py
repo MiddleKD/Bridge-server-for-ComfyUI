@@ -42,22 +42,30 @@ class AsyncJsonWrapper:
                 self.contents = {}
             self.contents[name] = value
 
-def make_workflow_alias_map(wf_dir, wf_alias_fn) -> dict:
+def make_workflow_alias_list_and_map(wf_dir, wf_alias_fn) -> dict:
     # wf_alias_fn 파일을 열어 JSON 데이터를 로드
     with open(wf_alias_fn, mode="r") as f:
         jsonlike = json.load(f)
     
-    wf_alias_map = jsonlike
+    wf_alias_list_with_desc = jsonlike
+    wf_fns = [cur["fn"] for cur in jsonlike]
+    wf_alias_map = {cur["alias"]:cur["fn"] for cur in jsonlike}
     
     # wf_dir 디렉토리 내의 파일 목록을 순회
     for cur in os.listdir(wf_dir):
         # 파일이 jsonlike 값에 없고 .json으로 끝나는 경우
-        if cur not in jsonlike.values() and cur.endswith(".json"):
-            wf_alias_map[cur] = cur  # wf_alias_map에 추가
+        if cur not in wf_fns and cur.endswith(".json"):
+            wf_alias_info = {
+                "alias":cur,
+                "fn":cur,
+                "description":""
+            }
+            wf_alias_list_with_desc.append(wf_alias_info) # wf_alias_list에 추가  
+            wf_alias_map[cur] = cur # wf_alias_map에 추가
         else:
             continue  # 조건에 맞지 않으면 넘어감
 
-    return wf_alias_map  # 최종적으로 맵 반환
+    return wf_alias_list_with_desc, wf_alias_map  # 최종적으로 리스트와 맵 반환
 
 # API
 def queue_prompt(prompt, client_id, server_address):

@@ -15,7 +15,7 @@ from assistant import (queue_prompt,
                     post_free_memory,
                     parse_workflow_prompt,
                     process_outputs,
-                    make_workflow_alias_map,
+                    make_workflow_alias_list_and_map,
                     AsyncJsonWrapper)
 
 @web.middleware
@@ -80,7 +80,7 @@ class BridgeServer():
 
         self.state_obj = AsyncJsonWrapper(state_fn)
         self.validator = FileValidator(allowed_mime_type_extension_map)
-        self.wf_alias_map = make_workflow_alias_map(wf_dir, wf_alias_fn)
+        self.wf_alias_list_with_desc, self.wf_alias_map = make_workflow_alias_list_and_map(wf_dir, wf_alias_fn)
 
     async def init_app(self):
         """
@@ -599,8 +599,8 @@ class BridgeServer():
         Returns:
             web.Response: HTTP 응답 객체입니다. 워크플로우 목록을 나타내는 JSON 응답을 반환합니다.
         """
-        wf_list = list(self.wf_alias_map.keys())
-        return web.Response(status=200, body=json.dumps(wf_list), content_type="application/json")
+        wf_alias_list_with_desc = self.wf_alias_list_with_desc
+        return web.Response(status=200, body=json.dumps(wf_alias_list_with_desc), content_type="application/json")
     
     async def get_workflow_info(self, request):
         """

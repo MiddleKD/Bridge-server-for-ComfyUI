@@ -158,13 +158,19 @@ API 명세서는 [여기](bridge_server/README.md)서 확인할 수 있습니다
     ```
 3. `bridge_server/workflow_alias.json`
     ```python
-    # workflow 별명:workflow 파일 이름의 맵핑입니다. workflow파일은 bridge_server/workflows에 저장되어야 합니다.
-    {
-        "image-to-image":"I2I_basic_api.json",
-        "text-to-image":"T2I_basic_api.json",
-        "image-expansion":"I2I_expand_api.json",
-        "image-shift":"I2I_shift_api.json",
-    }
+    # workflow 별명과 파일 이름, 간단한 설명의 관한 설정입니다. workflow파일은 bridge_server/workflows에 저장되어야 합니다.
+    [
+        {
+            "alias":"image-to-image",
+            "fn":"I2I_basic_api.json",
+            "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환"
+        },
+        {
+            "alias":"text-to-image",
+            "fn":"T2I_basic_api.json",
+            "description":"텍스트에서 시작하여 이미지 생성"
+        }
+    ]
     ```
 4. `nginx_config`
     ```text

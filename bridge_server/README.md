@@ -282,7 +282,7 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
 
 ### describe
 
-현재 bridge_server의 `.env`에 지정된 **workflow 디렉토리에서 json파일의 alias**를 반환합니다. alias는 `root/bridge_server/workflow_alias.json`에서 설정할 수 있습니다.
+현재 bridge_server의 `.env`에 지정된 **workflow 디렉토리에서 json파일의 alias와 description**을 반환합니다. alias는 `root/bridge_server/workflow_alias.json`에서 설정할 수 있습니다.
 
 ### response
 
@@ -290,7 +290,18 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
     - **상태 코드:** 200 OK
     - **Content-Type:** application/json
       ```json
-      ["text-to-image", "image-to-image", "image-to-video", "..."]
+      [
+        {
+          "alias":"image-to-image",
+          "fn":"I2I_basic_api.json",
+          "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환"
+        },
+        {
+          "alias":"text-to-image",
+          "fn":"T2I_basic_api.json",
+          "description":"텍스트에서 시작하여 이미지 생성"
+        }
+      ]
       ```
 
 - error response

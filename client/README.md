@@ -11,7 +11,7 @@ Bridge server를 사용하는 client의 예시입니다.
     ex: your_awesome_workflow.json
 2. `Bridge-server-for-comfyui/bridge_server/workflow_alias.json`에서 workflow alias 설정
     
-    ex: "awesome_alias":"your_awesome_workflow.json"
+    ex: {"alias":"awesome_alias", "fn":"your_awesome_workflow.json", "description":"your_awesome_description"}
 3. `Bridge-server-for-comfyui/bridge_server/test_wf_names.txt`에 테스트 workflow alias 추가
 
     ex: awesome_alias

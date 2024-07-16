@@ -1,10 +1,37 @@
-{
-    "image-to-image":"I2I_basic_api.json",
-    "text-to-image":"T2I_basic_api.json",
-    "product-bg-generation-text":"productfix_text_api.json",
-    "product-bg-generation-style":"productfix_adapter_api.json",
-    "git-header-maker":"git_header_api.json",
-    "image-expansion":"I2I_expand_api.json",
-    "image-shift":"I2I_shift_api.json",
-    "anime-frame-augmentation":"VFI_anime_api.json"
-}
+[
+    {
+        "alias":"image-to-image",
+        "fn":"I2I_basic_api.json",
+        "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환"
+    },
+    {
+        "alias":"text-to-image",
+        "fn":"T2I_basic_api.json",
+        "description":"텍스트에서 시작하여 이미지 생성"
+    },
+    {
+        "alias":"product-bg-generation-text",
+        "fn":"productfix_text_api.json",
+        "description":"상품의 배경을 텍스트 기반으로 생성"
+    },
+    {
+        "alias":"git-header-maker",
+        "fn":"git_header_api.json",
+        "description":"상품의 배경을 스타일 이미지 기반으로 생성"
+    },
+    {
+        "alias":"image-expansion",
+        "fn":"I2I_expand_api.json",
+        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈공간를 채웁니다."
+    },
+    {
+        "alias":"image-shift",
+        "fn":"I2I_shift_api.json",
+        "description":"이미지를 정해진 크기 내에서 움직이기. 움직이면서 생긴 빈 공간을 채웁니다."
+    },
+    {
+        "alias":"anime-frame-augmentation",
+        "fn":"VFI_anime_api.json",
+        "description":"입력 영상에서 보간 프레임을 생성하여 더 부드럽게 만듭니다."
+    }
+]
