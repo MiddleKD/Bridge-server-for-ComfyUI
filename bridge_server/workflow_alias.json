@@ -15,9 +15,14 @@
         "description":"상품의 배경을 텍스트 기반으로 생성"
     },
     {
+        "alias":"product-bg-generation-style",
+        "fn":"productfix_adapter_api.json",
+        "description":"상품의 배경을 스타일 이미지 기반으로 생성"
+    },
+    {
         "alias":"git-header-maker",
         "fn":"git_header_api.json",
-        "description":"상품의 배경을 스타일 이미지 기반으로 생성"
+        "description":"깃허브 리포지토리 헤더(베너)를 생성"
     },
     {
         "alias":"image-expansion",
