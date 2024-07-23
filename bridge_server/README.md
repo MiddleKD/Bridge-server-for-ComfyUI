@@ -88,14 +88,12 @@ comfyui의 workflow에서 관리자가 직접 지정한 input정보를 불러옵
           {
             "type": "str", 
             "title": "CLIP Text Encode (Prompt)", 
-            "class": "CLIPTextEncode", 
             "default": "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,"
           },
         "10/image": 
           {
-            "type": "str", 
+            "type": "image/jpeg", 
             "title": "Load Image", 
-            "class": "LoadImage", 
             "default": "i2i_example.jpg"
           }
       }
@@ -188,7 +186,8 @@ AI 프로세스를 요청합니다.
   | workflow  | str | yes | 실행할 workflow의 alias |
   | {workflow_input_int} | int | no | [GET] workflow info로 가져온 필요 정보 |
   | {workflow_input_float} | float | no | [GET] workflow info로 가져온 필요 정보 |
-  | {workflow_input_info} | str | no | [GET] workflow info로 가져온 필요 정보(**파일명 포함**) |
+  | {workflow_input_str} | str | no | [GET] workflow info로 가져온 필요 정보 |
+  | {workflow_input_mime_type} | str | no | [GET] workflow info로 가져온 필요 정보 **파일 경로 포함** |
 - **example**
   ```json
   {

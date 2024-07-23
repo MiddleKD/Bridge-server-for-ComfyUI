@@ -5,6 +5,7 @@ import json
 from asyncio import Lock
 import urllib
 from requests_toolbelt import MultipartEncoder
+from security import FileValidator
 
 # Manage json file
 class AsyncJsonWrapper:
@@ -258,12 +259,13 @@ def upload_image(input_path, file_name, server_address, image_type="input", over
                 raise urllib.error.HTTPError(msg="Bad request on upload image")
 
 # Parsing text
-def get_parsed_input_nodes(workflow_json):
+def get_parsed_input_nodes(workflow_json, tracing_mime_types:list=[]):
     """
     ComfyUI의 워크플로우를 파싱하여 Custom input 정보를 가져옵니다.
     
     Args:
         workflow_json (str or dict): 워크플로우 JSON 파일 경로 또는 JSON 데이터
+        tracing_mime_types (list): 워크플로우 제공 정보에서 str을 mime type으로 변환할 수 있을 때, 추적하는 mimetype입니다.
     
     Returns:
         dict: 파싱된 Custom input 정보를 담은 dictionary
@@ -292,29 +294,35 @@ def get_parsed_input_nodes(workflow_json):
         for api_input in api_inputs:
             if api_input is not None:
                 input_value = cur_node["inputs"].get(api_input, None)
-                input_type = type(input_value)
+                input_type = type(input_value).__name__
 
                 # 입력 값이 None이거나 빈 문자열인 경우 오류 발생
                 if input_value is None or input_value == '':
                     raise ValueError(f"{node_number}:{api_input}, is wrong data('{input_type}', '{input_value}')")
                 
+                # input type이 string일 경우 파일 데이터인지 확인
+                if input_type == "str":
+                    mime_type = FileValidator.get_mime_type_from_filename(input_value)
+                    if mime_type in tracing_mime_types:
+                        input_type = mime_type
+                        
                 # 파싱된 입력 노드 정보를 사전에 추가
                 parsed_input_nodes[f"{node_number}/{api_input}"] = {
-                    "type": input_type.__name__,    # default input값의 data type
+                    "type": input_type,    # default input값의 data type
                     "title": cur_node["_meta"]["title"],    # 해당 노드의 title
-                    "class": cur_node["class_type"],    # 해당 노드의 class type
                     "default": cur_node["inputs"][api_input]    # 해당 노드의 default input
                 }
 
     return parsed_input_nodes
 
-def parse_workflow_prompt(workflow_path, **kwargs):
+def parse_workflow_prompt(workflow_path, tracing_mime_types:list=[], **kwargs):
     """
     'get_parsed_input_nodes로 불러온 양식을 채운 client의 custom input을 기반으로
     ComfyUI 워크플로우 프롬프트를 파싱하여 입력 값을 교체합니다.
     
     Args:
         workflow_path (str): 워크플로우 JSON 파일 경로
+        tracing_mime_types (list): 워크플로우 제공 정보에서 str을 mime type으로 변환할 수 있을 때, 추적하는 mimetype입니다.
         **kwargs: 노드 ID와 키를 결합한 문자열을 키로, custom input 입력 값을 값으로 받는 인자들
     
     Returns:
@@ -333,11 +341,17 @@ def parse_workflow_prompt(workflow_path, **kwargs):
         node_id, input_key = node_id_and_key.split("/")
 
         input_value = kwargs.get(node_id_and_key, None)
+        input_type = type(input_value).__name__
+        node_info_type = node_info["type"]
+
         if input_value is not None:
-            if type(input_value).__name__ != node_info["type"]:
-                raise ValueError(f"'{node_id_and_key}' need to have type of {node_info["type"]} but got {type(input_value)} from {input_value})")
+            if node_info_type in tracing_mime_types:
+                pass
+            elif node_info_type != input_type:
+                raise ValueError(f"'{node_id_and_key}' need to have type of {node_info_type} but got {type(input_value)} from {input_value})")
         else:
             input_value = node_info.get("default", None)
+            Warning(f"'{node_id_and_key}' is None. It will be set default values.")
         prompt[node_id]["inputs"][input_key] = input_value
 
     return prompt

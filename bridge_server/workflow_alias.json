@@ -27,7 +27,7 @@
     {
         "alias":"image-expansion",
         "fn":"I2I_expand_api.json",
-        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈공간를 채웁니다."
+        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈 공간을 채웁니다."
     },
     {
         "alias":"image-shift",

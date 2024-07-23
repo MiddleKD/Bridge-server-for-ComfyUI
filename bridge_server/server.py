@@ -2,6 +2,7 @@ import json, os
 import tempfile
 import asyncio
 import aiohttp
+import base64
 import logging
 from aiohttp import web
 from security import FileValidator
@@ -89,8 +90,8 @@ class BridgeServer():
         Returns:
             app (web.Application): 초기화된 웹 애플리케이션 객체입니다.
         """
-        app = web.Application(middlewares=[error_middleware], client_max_size=self.upload_max_size)
-        # app = web.Application(client_max_size=self.upload_max_size)
+        # app = web.Application(middlewares=[error_middleware], client_max_size=self.upload_max_size)
+        app = web.Application(client_max_size=self.upload_max_size)
 
         # bridge_server.urls.py에 따라 초기화
         setup_routes(app, self)
@@ -356,18 +357,24 @@ class BridgeServer():
                 tmp_path = os.path.join(tempfile.gettempdir(), value)
                 mime_type = self.validator.get_mime_type_from_file(file_path=tmp_path)
                 extension = self.validator.mime_extension_map[mime_type]
-                # 존재할 경우 할당된 ComfyUI서버에 업로드합니다.
-                upload_result = upload_image(input_path=tmp_path,
-                                            file_name=os.path.basename(tmp_path)+extension,
-                                            server_address=self.socket_manager[sid].linked_server)
-                kwargs[key] = os.path.join(upload_result["subfolder"], upload_result["name"])
-                # 업로드 후 임시 파일을 삭제합니다.
-                os.remove(tmp_path)
+                
+                if os.path.exists(tmp_path):
+                    # 존재할 경우 할당된 ComfyUI서버에 업로드합니다.
+                    upload_result = upload_image(input_path=tmp_path,
+                                                file_name=os.path.basename(tmp_path)+extension,
+                                                server_address=self.socket_manager[sid].linked_server)
+                    kwargs[key] = os.path.join(upload_result["subfolder"], upload_result["name"])
+                    # 업로드 후 임시 파일을 삭제합니다.
+                    os.remove(tmp_path)
+                else:
+                    raise ValueError(f"'{value}' file is not exist in server.")
             else:
                 kwargs[key] = value
 
         # ComfyUI 서버의 prompt 양식에 맞게끔 파싱합니다.     
-        prompt = parse_workflow_prompt(os.path.join(self.wf_dir, workflow), **kwargs)
+        prompt = parse_workflow_prompt(os.path.join(self.wf_dir, workflow), 
+                                       tracing_mime_types=self.validator.ALLOWED_MIME_TYPES, 
+                                       **kwargs)
         self.socket_manager[sid].wf_info = prompt
         # 할당된 ComfyUI 서버에 prompt를 등록합니다. 
         prompt = queue_prompt(prompt, sid, self.socket_manager[sid].linked_server)
@@ -429,7 +436,8 @@ class BridgeServer():
                         raise TypeError(f"{detail_about} is not allowed type / {file_name}")
                 else:
                     # 안전하지 않다면 삭제, 에러발생
-                    os.remove(tmp_path)
+                    if tmp_path is not None:
+                        os.remove(tmp_path)
                     raise TypeError(f"{detail_about} / {file_name}")
                 
                 fns[file_identifier] = os.path.basename(tmp_path)
@@ -464,6 +472,7 @@ class BridgeServer():
         """
         
         sid = request.rel_url.query.get('clientId', None)
+        res_type = request.rel_url.query.get('resType', "multipart")
         if not isinstance(sid, str): raise TypeError(f"clientId is must be str, but got {type(sid).__str__()}")
         
         server_address = self.socket_manager[sid].linked_server
@@ -478,48 +487,67 @@ class BridgeServer():
         history = get_history(prompt_id, server_address)
         history = history.get(prompt_id, None)
         logging.debug(f"[GET] '{request.path}' / GET HISTORY / {sid}")
-
+        
         if history is not None:
-            output = history["outputs"],
+            output = history["outputs"]
             if isinstance(output, tuple):
                 output = output[0]
-            
-            data = aiohttp.FormData()
+
             file_names, file_contents = process_outputs(output, server_address)
+
+            if res_type == "multipart":
+                data = aiohttp.FormData()
+            elif res_type == "base64":
+                encoded_files = []
+            else:
+                raise ValueError(f"resType is must be [multipart, base64] but got {res_type}")
+            
             for idx, (file_name, file_content) in enumerate(zip(file_names, file_contents)):
                 # 바이트 파일이 안전한지 검사
                 is_valid, detail_about, _ = await self.validator.validate_and_sanitize_file(file_content, file_name)
-                
-                if is_valid == True:
-                    data.add_field(
-                        f'result_{idx}',
-                        file_content,
-                        content_type=detail_about,
-                        filename=file_name,
-                    )
+
+                if is_valid:
+                    if res_type == "multipart":
+                        data.add_field(
+                            f'result_{idx}',
+                            file_content,
+                            content_type=detail_about,
+                            filename=file_name,
+                        )
+                    elif res_type == "base64":
+                        encoded_file = base64.b64encode(file_content).decode('utf-8')
+                        encoded_files.append({
+                            'file_name': file_name,
+                            'content_type': detail_about,
+                            'content': encoded_file,
+                        })
+                    else:
+                        raise ValueError(f"resType is must be [multipart, base64] but got {res_type}")
                 else:
                     logging.debug(f"{detail_about} / {file_name} / {sid}")
                     continue
 
-            multipart = data()
-            headers = {"Content-Type": multipart.content_type}
-            
-            # client id life cycle is over. realease all resource
+            # client id life cycle is over. release all resources
             asyncio.create_task(self.socket_manager.async_delete(sid))
             logging.debug(f"[GET] '{request.path}' / DELETE HISTORY / {sid}")
 
-            return web.Response(
-                status=200,
-                body=multipart,
-                headers=headers
-            )
-        else:
-            # 해당 client id의 결과물이 존재하지 않음. 할당된 적이 없거나, 아직 실행 및 대기 중
-            return web.Response(
-                status=204,
-                body=json.dumps({"detail":f"No contents with that client id / {sid}"}),
-                headers={"Content-Type": "application/json"}
-            )
+            if res_type == "multipart":
+                multipart = data()
+                headers = {"Content-Type": multipart.content_type}
+                return web.Response(
+                    status=200,
+                    body=multipart,
+                    headers=headers
+                )
+            elif res_type == "base64":
+                headers = {"Content-Type": "application/json"}
+                return web.Response(
+                    status=200,
+                    body=json.dumps({'files': encoded_files}),
+                    headers=headers
+                )
+            else:
+                raise ValueError(f"resType is must be [multipart, base64] but got {res_type}")
 
     async def free_memory(self, request):
         """
@@ -615,7 +643,8 @@ class BridgeServer():
         workflow = request.rel_url.query.get('workflow', '')
         if not isinstance(workflow, str): raise TypeError(f"workflow is required and must be and str, but got {type(workflow).__str__()}")
         workflow = self.wf_alias_map[workflow]
-        node_info = get_parsed_input_nodes(os.path.join(self.wf_dir, workflow))
+        node_info = get_parsed_input_nodes(os.path.join(self.wf_dir, workflow),
+                                           tracing_mime_types=self.validator.ALLOWED_MIME_TYPES)
         return web.Response(status=200, body=json.dumps(node_info), content_type="application/json")
     
     async def main_page(self, _):

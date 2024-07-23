@@ -15,7 +15,8 @@ class FileValidator:
         self.mime_extension_map = allowed_mime_extension_map
         self.ALLOWED_MIME_TYPES = list(allowed_mime_extension_map.keys())
 
-    def get_mime_type_from_file(self, file_path):
+    @staticmethod
+    def get_mime_type_from_file(file_path):
         """
         파일로부터 MIME 타입을 가져옵니다.
         
@@ -29,7 +30,8 @@ class FileValidator:
         mime_type = mime.from_file(file_path)
         return mime_type or 'application/octet-stream'
 
-    def get_mime_type_from_filename(self, file_name):
+    @staticmethod
+    def get_mime_type_from_filename(file_name):
         """
         파일 이름에서 MIME 타입을 추정합니다.
         
@@ -41,8 +43,9 @@ class FileValidator:
         """
         mime_type, _ = mimetypes.guess_type(file_name)
         return mime_type or 'application/octet-stream'
-        
-    def get_mime_type_from_binary(self, binary_data):
+    
+    @staticmethod
+    def get_mime_type_from_binary(binary_data):
         """
         이진 데이터에서 MIME 타입을 가져옵니다.
         
@@ -94,7 +97,7 @@ class FileValidator:
             bool: 의심스러운 파일 여부
         """
         suspicious_patterns = [
-            b'<script', b'<?php', b'#!/', b'import ',
+            b'<script', b'<?php', b'import ',
             b'eval(', b'exec(', b'system(',
         ]
         
@@ -136,14 +139,14 @@ class FileValidator:
                 - str or None: 임시 파일 경로 (return_tmp_path=True 일 때 반환)
         """
         if not self.is_safe_filename(filename):
-            return False, "Invalid filename"
+            return False, "Invalid filename", None
 
         with tempfile.NamedTemporaryFile(prefix="bridge_server_comfyui_", delete=False) as tmp_file:
             tmp_file.write(file_data)
             tmp_file_path = tmp_file.name
 
         try:
-            mime_type = self.get_mime_type_from_file(tmp_file_path)
+            mime_type = FileValidator.get_mime_type_from_file(tmp_file_path)
             if mime_type not in self.ALLOWED_MIME_TYPES:
                 return False, f"Unsupported MIME type: {mime_type}", None
 

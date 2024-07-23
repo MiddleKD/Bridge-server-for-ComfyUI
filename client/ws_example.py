@@ -162,7 +162,7 @@ async def main(ci_list, wf_list, is_test=False):
 f"""-------------------
 Node:{key}
 Title:{info["title"]}
-Class:{info["class"]}
+Type:{info["type"]}
 Input:
 """) or info["default"]
                 
