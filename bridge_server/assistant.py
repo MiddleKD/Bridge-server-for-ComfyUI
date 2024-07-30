@@ -145,7 +145,7 @@ def post_free_memory(server_address):
     Returns:
         dict: 서버의 응답을 JSON 형식으로 반환
     """
-    url = f"http://{server_address}/free/"
+    url = f"http://{server_address}/free"
     data = json.dumps({"unload_models": True, "free_memory": True}).encode('utf-8')
     headers = {
         'Content-Type': 'application/json'
