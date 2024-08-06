@@ -1,5 +1,5 @@
 # 🎨 Bridge-server-for-ComfyUI
-![git_header](assets/favorfit-git-header.png)
+![git_header](assets/middlek_git_header.png)
 여러 ComfyUI를 통합하고 workflow를 배포할 수 있는 브릿지(프록시) 서버입니다.
 
 ## 📌 Index
@@ -187,4 +187,4 @@ API 명세서는 [여기](bridge_server/README.md)서 확인할 수 있습니다
 Bridge server의 API를 이용하는 client의 예시는 [여기](client/README.md)서 확인할 수 있습니다.
 
 ## 📞 Contact
-favorfit - lab@favorfit.ai
+middlek - middlekcenter@gmail.com
