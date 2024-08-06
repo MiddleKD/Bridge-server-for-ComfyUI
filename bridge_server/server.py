@@ -17,6 +17,7 @@ from assistant import (queue_prompt,
                     parse_workflow_prompt,
                     process_outputs,
                     make_workflow_alias_list_and_map,
+                    encode_byte_base64,
                     AsyncJsonWrapper)
 
 @web.middleware
@@ -515,7 +516,7 @@ class BridgeServer():
                             filename=file_name,
                         )
                     elif res_type == "base64":
-                        encoded_file = base64.b64encode(file_content).decode('utf-8')
+                        encoded_file = encode_byte_base64(file_content)
                         encoded_files.append({
                             'file_name': file_name,
                             'content_type': detail_about,
@@ -643,7 +644,9 @@ class BridgeServer():
         workflow = request.rel_url.query.get('workflow', '')
         if not isinstance(workflow, str): raise TypeError(f"workflow is required and must be and str, but got {type(workflow).__str__()}")
         workflow = self.wf_alias_map[workflow]
-        node_info = get_parsed_input_nodes(os.path.join(self.wf_dir, workflow),
+        node_info = get_parsed_input_nodes(workflow_json=os.path.join(self.wf_dir, workflow),
+                                           wf_dir=self.wf_dir,
+                                           include_descimage=True,
                                            tracing_mime_types=self.validator.ALLOWED_MIME_TYPES)
         return web.Response(status=200, body=json.dumps(node_info), content_type="application/json")
     

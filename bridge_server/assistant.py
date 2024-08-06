@@ -1,7 +1,10 @@
 import os, json
+from typing import Union
+import logging
 import urllib.error
 import aiofiles
 import json
+import base64
 from asyncio import Lock
 import urllib
 from requests_toolbelt import MultipartEncoder
@@ -49,6 +52,15 @@ def make_workflow_alias_list_and_map(wf_dir, wf_alias_fn) -> dict:
         jsonlike = json.load(f)
     
     wf_alias_list_with_desc = jsonlike
+    for idx, cur in enumerate(jsonlike):
+        thumbnail_fn = cur.get("thumbnail", None)
+        thumbnail_path = os.path.join(wf_dir, "thumbnail", thumbnail_fn)
+
+        thumbnail_byte = open_image(thumbnail_path)
+        thumbnail_b64 = encode_byte_base64(thumbnail_byte)
+
+        wf_alias_list_with_desc[idx]["thumbnail"] = thumbnail_b64
+        
     wf_fns = [cur["fn"] for cur in jsonlike]
     wf_alias_map = {cur["alias"]:cur["fn"] for cur in jsonlike}
     
@@ -59,7 +71,8 @@ def make_workflow_alias_list_and_map(wf_dir, wf_alias_fn) -> dict:
             wf_alias_info = {
                 "alias":cur,
                 "fn":cur,
-                "description":""
+                "description":"",
+                "thumbnail":None,
             }
             wf_alias_list_with_desc.append(wf_alias_info) # wf_alias_list에 추가  
             wf_alias_map[cur] = cur # wf_alias_map에 추가
@@ -259,7 +272,7 @@ def upload_image(input_path, file_name, server_address, image_type="input", over
                 raise urllib.error.HTTPError(msg="Bad request on upload image")
 
 # Parsing text
-def get_parsed_input_nodes(workflow_json, tracing_mime_types:list=[]):
+def get_parsed_input_nodes(workflow_json, wf_dir:str=None, include_descimage:bool=False, tracing_mime_types:list=[]):
     """
     ComfyUI의 워크플로우를 파싱하여 Custom input 정보를 가져옵니다.
     
@@ -305,13 +318,22 @@ def get_parsed_input_nodes(workflow_json, tracing_mime_types:list=[]):
                     mime_type = FileValidator.get_mime_type_from_filename(input_value)
                     if mime_type in tracing_mime_types:
                         input_type = mime_type
-                        
+                
+                if include_descimage == True:
+                    # description image가 있는지 확인
+                    desc_img = cur_node["_meta"].get("descimage", None)
+                    desc_img_byte = open_image(os.path.join(wf_dir, "descimage", desc_img))
+
                 # 파싱된 입력 노드 정보를 사전에 추가
                 parsed_input_nodes[f"{node_number}/{api_input}"] = {
                     "type": input_type,    # default input값의 data type
                     "title": cur_node["_meta"]["title"],    # 해당 노드의 title
-                    "default": cur_node["inputs"][api_input]    # 해당 노드의 default input
+                    "default": cur_node["inputs"][api_input],    # 해당 노드의 default input
                 }
+
+                if include_descimage == True:
+                    if desc_img_byte is not None:
+                        parsed_input_nodes[f"{node_number}/{api_input}"]["descimage"] = encode_byte_base64(desc_img_byte)
 
     return parsed_input_nodes
 
@@ -334,7 +356,7 @@ def parse_workflow_prompt(workflow_path, tracing_mime_types:list=[], **kwargs):
     with open(workflow_path, mode="r") as f:
         workflow_json = json.load(f)
     
-    parsed_input_nodes = get_parsed_input_nodes(workflow_json)
+    parsed_input_nodes = get_parsed_input_nodes(workflow_json, include_descimage=False)
     prompt = workflow_json
 
     for node_id_and_key, node_info in parsed_input_nodes.items():
@@ -391,3 +413,16 @@ def process_outputs(outputs: dict, server_address):
                 file_contents.append(file_content)
 
     return file_names, file_contents
+
+def open_image(img_path:str):
+    try:
+        with open(img_path, mode="rb") as f:
+            img_byte = f.read()
+    except Exception as e:
+        logging.warning(f"Error occered during open {img_path} / {e}")
+        return None
+    
+    return img_byte
+
+def encode_byte_base64(file_content:bytes):
+    return base64.b64encode(file_content).decode('utf-8')

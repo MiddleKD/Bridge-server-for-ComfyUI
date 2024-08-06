@@ -1,6 +1,8 @@
 lib/
 !comfyui_patch/web/lib/
 bridge_server/workflows/*.json
+bridge_server/workflows/thumbnail/*.jpg
+bridge_server/workflows/descimage/*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
