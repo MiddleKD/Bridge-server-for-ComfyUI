@@ -429,8 +429,12 @@ class BridgeServer():
 
                 if is_valid == True:
                     if "image" in detail_about:
-                        # 이미지 일 때 valid TODO: 저 많은 타입을 허락해야 함
+                        # 이미지 일 때 valid
                         pass
+                    elif "video" in detail_about:
+                        # 비디오 일 때 valid
+                        pass
+                    # TODO: 더 많은 타입을 허락해야 함
                     else:
                         # 그 외 금지
                         os.remove(tmp_path)

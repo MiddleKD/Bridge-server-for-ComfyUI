@@ -2,49 +2,49 @@
     {
         "alias":"image-to-image",
         "fn":"I2I_basic_api.json",
-        "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환",
+        "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환\n\nStart with an image and convert to another image depending on the input text",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"text-to-image",
         "fn":"T2I_basic_api.json",
-        "description":"텍스트에서 시작하여 이미지 생성",
+        "description":"텍스트에서 시작하여 이미지 생성\n\nCreate an image starting from the text",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"product-bg-generation-text",
         "fn":"productfix_text_api.json",
-        "description":"상품의 배경을 텍스트 기반으로 생성",
+        "description":"상품의 배경을 텍스트 기반으로 생성\n\nCreate a product's background based on text",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"product-bg-generation-style",
         "fn":"productfix_adapter_api.json",
-        "description":"상품의 배경을 스타일 이미지 기반으로 생성",
+        "description":"상품의 배경을 스타일 이미지 기반으로 생성\n\nCreate a product's background based on style images",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"git-header-maker",
         "fn":"git_header_api.json",
-        "description":"깃허브 리포지토리 헤더(베너)를 생성",
+        "description":"깃허브 리포지토리 헤더(베너)를 생성\n\nCreate GitHub Repository Header (Venner)",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"image-expansion",
         "fn":"I2I_expand_api.json",
-        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈 공간을 채웁니다.",
+        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈 공간을 채웁니다.\n\nExpand by the size of the image you entered. Fill in the empty space by the expanded size.",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"image-shift",
         "fn":"I2I_shift_api.json",
-        "description":"이미지를 정해진 크기 내에서 움직이기. 움직이면서 생긴 빈 공간을 채웁니다.",
+        "description":"이미지를 정해진 크기 내에서 움직이기. 움직이면서 생긴 빈 공간을 채웁니다.\n\nMove the image within a set size. Fill in the empty space created by movement.",
         "thumbnail":"test_thumbnail.jpg"
     },
     {
         "alias":"anime-frame-augmentation",
         "fn":"VFI_anime_api.json",
-        "description":"입력 영상에서 보간 프레임을 생성하여 더 부드럽게 만듭니다.",
+        "description":"입력 영상에서 보간 프레임을 생성하여 더 부드럽게 만듭니다.\n\nCreate an interpolation frame from the input image to make it smoother.",
         "thumbnail":"test_thumbnail.jpg"
     }
 ]
