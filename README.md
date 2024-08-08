@@ -162,12 +162,14 @@ API 명세서는 [여기](bridge_server/README.md)서 확인할 수 있습니다
         {
             "alias":"image-to-image",
             "fn":"I2I_basic_api.json",
-            "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환"
+            "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환",
+            "thumbnail":"test_thumbnail.jpg" # bridgeserver/workflows/thumbnail에 저장된 이미지
         },
         {
             "alias":"text-to-image",
             "fn":"T2I_basic_api.json",
-            "description":"텍스트에서 시작하여 이미지 생성"
+            "description":"텍스트에서 시작하여 이미지 생성",
+            "thumbnail":"test_thumbnail.jpg" # bridgeserver/workflows/thumbnail에 저장된 이미지
         }
     ]
     ```
