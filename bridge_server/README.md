@@ -73,7 +73,10 @@ workflow 실행에 필요한 input 정보를 가져옵니다.
 ### endpoint
 `GET /workflow-info`
 ### describe
-comfyui의 workflow에서 관리자가 직접 지정한 input정보를 불러옵니다. comfyui wokrflow에는 많은 수의 input parameter가 있습니다. 일반 사용자는 모든 parameter를 이해하기 어렵기 때문에, bridge server에서는 **핵심적인 parameter(ex: text, image, seed etc.)를 관리자가 직접 지정**합니다. 이 엔드포인트는 해당 정보를 반환합니다.  
+comfyui의 workflow에서 관리자가 직접 지정한 input정보를 불러옵니다. comfyui wokrflow에는 많은 수의 input parameter가 있습니다. 일반 사용자는 모든 parameter를 이해하기 어렵기 때문에, bridge server에서는 **핵심적인 parameter(ex: text, image, seed etc.)를 관리자가 직접 지정**합니다. 이 엔드포인트는 해당 정보를 반환합니다.
+
+(24.08.08): descimage(describe image) 기능이 추가되었습니다. 해당 input을 묘사하는 image파일이 맵핑되어 있다면, 해당 이미지 파일의 base64 코드를 함께 반환합니다.
+
 ### query
 | key   | required | description |
 |--------|------|------|
@@ -87,14 +90,16 @@ comfyui의 workflow에서 관리자가 직접 지정한 input정보를 불러옵
         "6/text": 
           {
             "type": "str", 
-            "title": "CLIP Text Encode (Prompt)", 
-            "default": "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,"
+            "title": "CLIP Text Encode (Prompt) / text", 
+            "default": "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,",
+            "descimage":"/9j/4AAQSkZJRgABAQEBLAEsAAD//gATQ3JlY..."
           },
         "10/image": 
           {
             "type": "image/jpeg", 
             "title": "Load Image", 
-            "default": "i2i_example.jpg"
+            "default": "i2i_example.jpg",
+            "descimage":null
           }
       }
       ```
@@ -237,26 +242,32 @@ curl -X POST "http://{your_server_address}/generate-based-workflow?clientId={you
 
 서버에서 수행된 프로세스의 결과물을 Multipart로 반환합니다. 결과물을 가져온 이후에 해당 history는 삭제됩니다. **프로세스 life cycle의 마지막을 담당**합니다.
 
+(24.08.08): base64로 결과물을 반환하는 기능이 추가되었습니다. 필요할 경우 `resType` 쿼리에 base64를 입력하세요.
+
 ### query
 | key   | required | description |
 |--------|------|------|
 | clientId  | yes | [POST] generate based workflow에서 사용했던 client_id |
+| resType  | no | 응답 받을 결과물의 형식. enum (multipart, base64) 기본값: multipart|
 
 ### response
 
 - success response
-    - **상태 코드:** 200 OK
-    - **Content-Type:** multipart/form-data; boundary=----{your_boundary}
-    </br></br>
-    - **상태 코드:** 204 No Content 
-    - **Content-Type:** application/json
-      ```json
-      {"detail": "The client ID has not been submitted to the server before. It is not recognized. / {client_id}"}
-      ```
-      ```json
-      {"detail": "No contents with that client id / {client_id}"}
-      ```
-
+    - multipart
+      - **상태 코드:** 200 OK
+      - **Content-Type:** multipart/form-data; boundary=----{your_boundary}
+    - base64
+      - **상태 코드:** 200 OK
+      - **Content-Type:** application/json
+    - wrong
+      - **상태 코드:** 204 No Content 
+      - **Content-Type:** application/json
+        ```json
+        {"detail": "The client ID has not been submitted to the server before. It is not recognized. / {client_id}"}
+        ```
+        ```json
+        {"detail": "No contents with that client id / {client_id}"}
+        ```
 - error response
     - **상태 코드:** 400 Bad Request
     - **Content-Type:** application/json
@@ -283,6 +294,8 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
 
 현재 bridge_server의 `.env`에 지정된 **workflow 디렉토리에서 json파일의 alias와 description**을 반환합니다. alias는 `root/bridge_server/workflow_alias.json`에서 설정할 수 있습니다.
 
+(24.08.08): thumbnail 이미지 기능이 추가되었습니다. workflow를 표현하는 이미지가 맵핑되어 있다면, base64 이미지로 반홥합니다.
+
 ### response
 
 - success response
@@ -293,12 +306,14 @@ curl -X GET "http://{your_server_address}/history?clientId={your_client_id_submi
         {
           "alias":"image-to-image",
           "fn":"I2I_basic_api.json",
-          "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환"
+          "description":"이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환",
+          "thumbnail":"/9j/4AAQSkZJRgABAQEBLAEsAAD//gATQ3JlY..."
         },
         {
           "alias":"text-to-image",
           "fn":"T2I_basic_api.json",
-          "description":"텍스트에서 시작하여 이미지 생성"
+          "description":"텍스트에서 시작하여 이미지 생성",
+          "thumbnail":null
         }
       ]
       ```

@@ -122,8 +122,8 @@ class BridgeServer():
             out = await self.socket_manager.async_receive(sid)
             out = out.data
 
-            if self.socket_manager[sid].ws_connection_status in ["closed", "error"]:
-                # 메시지 상태가 closed 또는 error일 때 추적 종료
+            if self.socket_manager[sid].ws_connection_status in ["closed", "error", None]:
+                # 메시지 상태가 closed, error 또는 None 일 때 추적 종료
                 break
 
             if isinstance(out, str):
@@ -216,7 +216,7 @@ class BridgeServer():
                 # clinet와 통신 중단이 지속되면 timeout에러가 발생합니다.
                 timeout_count = 0
                 while True:
-                    if self.socket_manager[sid].ws_connection_status in ["closed", "error"]:
+                    if self.socket_manager[sid].ws_connection_status in ["closed", "error", None]:
                         break
                     else:
                         await self.socket_manager.async_send_json(sid, {"status":"listening", "detail":"server is listening"}, update_life=False)
@@ -429,8 +429,12 @@ class BridgeServer():
 
                 if is_valid == True:
                     if "image" in detail_about:
-                        # 이미지 일 때 valid TODO: 저 많은 타입을 허락해야 함
+                        # 이미지 일 때 valid
                         pass
+                    elif "video" in detail_about:
+                        # 비디오 일 때 valid
+                        pass
+                    # TODO: 더 많은 타입을 허락해야 함
                     else:
                         # 그 외 금지
                         os.remove(tmp_path)

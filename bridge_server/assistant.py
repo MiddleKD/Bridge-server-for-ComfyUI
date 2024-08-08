@@ -53,9 +53,10 @@ def make_workflow_alias_list_and_map(wf_dir, wf_alias_fn) -> dict:
     
     wf_alias_list_with_desc = jsonlike
     for idx, cur in enumerate(jsonlike):
+
+        # thumbnail 이미지 정보 추가
         thumbnail_fn = cur.get("thumbnail", None)
         thumbnail_path = os.path.join(wf_dir, "thumbnail", thumbnail_fn)
-
         thumbnail_byte = open_image(thumbnail_path)
         thumbnail_b64 = encode_byte_base64(thumbnail_byte)
 
@@ -278,6 +279,8 @@ def get_parsed_input_nodes(workflow_json, wf_dir:str=None, include_descimage:boo
     
     Args:
         workflow_json (str or dict): 워크플로우 JSON 파일 경로 또는 JSON 데이터
+        wf_dir: workdlow가 저장된 directory 경로(str). desc image 추적 위해 필요
+        include_descimage(bool): 파싱한 결과에 desc image를 포함할 것인지
         tracing_mime_types (list): 워크플로우 제공 정보에서 str을 mime type으로 변환할 수 있을 때, 추적하는 mimetype입니다.
     
     Returns:
@@ -304,7 +307,7 @@ def get_parsed_input_nodes(workflow_json, wf_dir:str=None, include_descimage:boo
         if meta_data is not None:
             api_inputs.extend(meta_data.split(","))
         
-        for api_input in api_inputs:
+        for idx, api_input in enumerate(api_inputs):
             if api_input is not None:
                 input_value = cur_node["inputs"].get(api_input, None)
                 input_type = type(input_value).__name__
@@ -320,20 +323,24 @@ def get_parsed_input_nodes(workflow_json, wf_dir:str=None, include_descimage:boo
                         input_type = mime_type
                 
                 if include_descimage == True:
-                    # description image가 있는지 확인
-                    desc_img = cur_node["_meta"].get("descimage", None)
-                    desc_img_byte = open_image(os.path.join(wf_dir, "descimage", desc_img))
+                    # api input에 맞는 description image 검사
+                    desc_imgs = cur_node["_meta"].get("descimage", None)
+                    if isinstance(desc_imgs, str):
+                        desc_imgs = [desc_imgs] * len(api_inputs)
+                    if len(api_inputs) != len(desc_imgs):
+                        raise ValueError(f"'api inputs' and 'desc images' length does not match. {len(api_inputs)} != {len(desc_imgs)}")
+                    # 이미지 파일 열기. 없으면 None
+                    desc_img_byte = open_image(os.path.join(wf_dir, "descimage", desc_imgs[idx]))
 
                 # 파싱된 입력 노드 정보를 사전에 추가
                 parsed_input_nodes[f"{node_number}/{api_input}"] = {
                     "type": input_type,    # default input값의 data type
-                    "title": cur_node["_meta"]["title"],    # 해당 노드의 title
+                    "title": f"{cur_node["_meta"]["title"]} / {api_input}",    # 해당 노드의 title
                     "default": cur_node["inputs"][api_input],    # 해당 노드의 default input
                 }
 
                 if include_descimage == True:
-                    if desc_img_byte is not None:
-                        parsed_input_nodes[f"{node_number}/{api_input}"]["descimage"] = encode_byte_base64(desc_img_byte)
+                    parsed_input_nodes[f"{node_number}/{api_input}"]["descimage"] = encode_byte_base64(desc_img_byte)
 
     return parsed_input_nodes
 
@@ -424,5 +431,7 @@ def open_image(img_path:str):
     
     return img_byte
 
-def encode_byte_base64(file_content:bytes):
+def encode_byte_base64(file_content:Union[bytes, None]):
+    if file_content is None:
+        return None
     return base64.b64encode(file_content).decode('utf-8')
