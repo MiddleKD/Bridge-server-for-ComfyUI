@@ -2,8 +2,10 @@ lib/
 !comfyui_patch/web/lib/
 bridge_server/workflows/*.json
 bridge_server/workflows/thumbnail/*.jpg
+bridge_server/workflows/thumbnail/*.png
 !bridge_server/workflows/thumbnail/test*.jpg
 bridge_server/workflows/descimage/*.jpg
+bridge_server/workflows/descimage/*.png
 !bridge_server/workflows/descimage/test*.jpg
 bridge_server/*_test*
 
