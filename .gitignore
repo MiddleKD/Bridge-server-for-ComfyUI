@@ -5,6 +5,7 @@ bridge_server/workflows/thumbnail/*.jpg
 !bridge_server/workflows/thumbnail/test*.jpg
 bridge_server/workflows/descimage/*.jpg
 !bridge_server/workflows/descimage/test*.jpg
+bridge_server/*_test*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
