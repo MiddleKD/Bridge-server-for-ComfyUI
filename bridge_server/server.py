@@ -115,13 +115,13 @@ class BridgeServer():
         """
         total_progress = 0
         cur_progress = 0
+        processed_node = []
 
         logging.info(f"[WS REQ] TRACING START / {sid}")
         while True:
             # ComfyUI 서버와 연결된 request websocket으로 부터 메시지를 받음
             out = await self.socket_manager.async_receive(sid)
             out = out.data
-
             if self.socket_manager[sid].ws_connection_status in ["closed", "error", None]:
                 # 메시지 상태가 closed, error 또는 None 일 때 추적 종료
                 break
@@ -133,11 +133,7 @@ class BridgeServer():
                     logging.info(f"[WS REQ] EXECUTION START / {sid}")
 
                     wf_info = self.socket_manager[sid].wf_info
-                    inputs_infos = [cur.get("inputs", None) for cur in wf_info.values()]
-                    steps_list = [value for inputs_info in inputs_infos
-                        for key, value in inputs_info.items()
-                        if "steps" in key]
-                    total_progress += (len(wf_info) + sum(steps_list))
+                    total_progress += len(wf_info)
                     progress_message = {
                         'status': 'progress',
                         'detail': f'{cur_progress/total_progress*100:.2f}%'
@@ -157,7 +153,25 @@ class BridgeServer():
                         logging.debug(f"[WS REQ] EXECUTION DONE / {sid}")
                     else:
                         # process가 성공적으로 진행 중
-                        cur_progress += 1
+                        cur_node = data.get("node", None)
+                        step_value = data.get("value", None)
+                        step_max = data.get("max", None)
+                        
+                        # 같은 노드를 다시 실행한다면, 진행 상황에 반영
+                        if cur_node in processed_node:
+                            cur_progress -= 1
+                            processed_node.remove(cur_node)
+
+                        if step_value is not None and step_max is not None:
+                            # sampling을 실행하는 노드일 경우
+                            cur_progress += 1/step_max
+                            if step_value == step_max:
+                                processed_node.append(cur_node)
+                        else:
+                            # 그 외 노드일 경우
+                            cur_progress += 1
+                            processed_node.append(cur_node)
+                        
                         progress_message = {
                             'status': 'progress',
                             'detail': f'{cur_progress/total_progress*100:.2f}%'

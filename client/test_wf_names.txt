@@ -1,6 +1,8 @@
 image-to-image
 text-to-image
-product-bg-generation-text
 image-expansion
+product-bg-generation-text
 image-shift
 product-bg-generation-style
+anime-frame-augmentation
+virtual-tryon
