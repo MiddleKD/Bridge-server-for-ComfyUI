@@ -1,5 +1,23 @@
 [
     {
+        "alias":"image-to-image-pro",
+        "fn":"I2I_flux_api.json",
+        "description":"FLUX 이미지에서 시작하여 입력 텍스트에 따라 다른 이미지로 변환\n\nStart with an image and convert to another image depending on the input text",
+        "thumbnail":"bird_thumbnail.png"
+    },
+    {
+        "alias":"text-to-image-pro",
+        "fn":"T2I_flux_api.json",
+        "description":"FLUX 텍스트에서 시작하여 이미지 생성\n\nCreate an image starting from the text",
+        "thumbnail":"bird2_thumbnail.png"
+    },
+    {
+        "alias":"super-resolution",
+        "fn":"super_resolution_api.json",
+        "description":"기존 이미지를 고해상도로 향상시킵니다.\n\nEnhances the resolution of an existing image.",
+        "thumbnail":"horse2_thumbnail.png"
+    },
+    {
         "alias":"product-bg-generation-text",
         "fn":"productfix_text_api.json",
         "description":"상품의 배경을 텍스트 기반으로 생성\n\nCreate a product's background based on text",
@@ -10,5 +28,17 @@
         "fn":"productfix_adapter_api.json",
         "description":"상품의 배경을 스타일 이미지 기반으로 생성\n\nCreate a product's background based on style images",
         "thumbnail":"zebra_thumbnail.jpg"
+    },
+    {
+        "alias":"image-expansion",
+        "fn":"I2I_expand_api.json",
+        "description":"이미지를 입력한 이미지의 크기만큼 확장. 확장된 크기 만큼 빈 공간을 채웁니다.\n\nExpand by the size of the image you entered. Fill in the empty space by the expanded size.",
+        "thumbnail":"lion_thumbnail.jpg"
+    },
+    {
+        "alias":"virtual-tryon",
+        "fn":"virtual_tryon_api.json",
+        "description":"사람 모델과 의상 사진을 입력으로 받아 착용한 이미지를 생성합니다.\n\nIt takes human models and costume photos as input and creates worn images.",
+        "thumbnail":"girl_thumbnail.jpg"
     }
 ]

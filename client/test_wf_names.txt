@@ -1,8 +1,3 @@
-image-to-image
-text-to-image
-image-expansion
 product-bg-generation-text
-image-shift
-product-bg-generation-style
-anime-frame-augmentation
+image-expansion
 virtual-tryon
