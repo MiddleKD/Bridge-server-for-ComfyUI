@@ -1,5 +1,5 @@
 lib/
-!comfyui_patch/web/lib/
+!comfyui_patch/web/assets/
 bridge_server/workflows/*.json
 bridge_server/workflows/thumbnail/*.jpg
 bridge_server/workflows/thumbnail/*.png
