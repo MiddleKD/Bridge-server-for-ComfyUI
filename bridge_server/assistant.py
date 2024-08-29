@@ -56,6 +56,8 @@ def make_workflow_alias_list_and_map(wf_dir, wf_alias_fn) -> dict:
 
         # thumbnail 이미지 정보 추가
         thumbnail_fn = cur.get("thumbnail", None)
+        if thumbnail_fn is None:
+            continue
         thumbnail_path = os.path.join(wf_dir, "thumbnail", thumbnail_fn)
         thumbnail_byte = open_image(thumbnail_path)
         thumbnail_b64 = encode_byte_base64(thumbnail_byte)
