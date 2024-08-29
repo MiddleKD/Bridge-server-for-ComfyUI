@@ -325,6 +325,8 @@ def get_parsed_input_nodes(workflow_json, wf_dir:str=None, include_descimage:boo
                 if include_descimage == True:
                     # api input에 맞는 description image 검사
                     desc_imgs = cur_node["_meta"].get("descimage", None)
+                    if desc_imgs == None:
+                        desc_imgs = "gray_image.jpg"
                     if isinstance(desc_imgs, str):
                         desc_imgs = [desc_imgs] * len(api_inputs)
                     if len(api_inputs) != len(desc_imgs):
