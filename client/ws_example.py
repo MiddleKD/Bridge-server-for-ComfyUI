@@ -149,7 +149,7 @@ async def run_client(client_id, data):
     await get_history(client_id)
 
 
-async def main(ci_list, wf_list, is_test=False):
+async def main(ci_list, wf_list, is_test=False, do_async=False):
     user_inputs = []
     for wf, ci in zip(wf_list, ci_list):
         wf_info = await get_workflow_info(wf)
@@ -180,10 +180,13 @@ Input:
     
         user_inputs.append(user_input)
 
-    tasks = [run_client(ci_list[idx], user_inputs[idx]) 
-             for idx in range(len(ci_list))]
-    await asyncio.gather(*tasks)
-
+    if do_async == True:
+        tasks = [run_client(ci_list[idx], user_inputs[idx]) 
+                for idx in range(len(ci_list))]
+        await asyncio.gather(*tasks)
+    else:
+        for idx in range(len(ci_list)):
+            await run_client(ci_list[idx], user_inputs[idx])
 
 if __name__ == "__main__":
     import argparse
@@ -193,6 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--url", default=server_address, type=str)
     parser.add_argument("--wfs", nargs='+', default=[], type=str)
     parser.add_argument("--test", action="store_true")
+    parser.add_argument("--do_async", action="store_true")
     args = parser.parse_args()
     
     server_address = args.url
@@ -204,6 +208,8 @@ if __name__ == "__main__":
     else:
         wf_list = args.wfs
     
+    print(f"Run {len(wf_list)} tasks as {"async" if args.do_async == True else "sync"}")
+
     ci_list = [str(uuid.uuid4()) for _ in range(len(wf_list))]
 
-    asyncio.run(main(ci_list, wf_list, is_test=args.test))
+    asyncio.run(main(ci_list, wf_list, is_test=args.test, do_async=args.do_async))

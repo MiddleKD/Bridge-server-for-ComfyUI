@@ -1,3 +1,6 @@
+image-to-image-pro
+text-to-image-pro
 product-bg-generation-text
+product-bg-generation-style
 image-expansion
 virtual-tryon
