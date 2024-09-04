@@ -1,6 +1,9 @@
 import os
 
 def create_symbolic_links(src_dir, dst_dir):
+    src_dir = os.path.abspath(src_dir)
+    dst_dir = os.path.abspath(dst_dir)
+    
     # Ensure the destination directory exists
     if not os.path.exists(dst_dir):
         os.makedirs(dst_dir)
